@@ -1,0 +1,368 @@
+// ImobZap — modelo de dados da POC.
+// Regra geral: toda tabela comercial carrega tenant_id e todo acesso da aplicação filtra por ele.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  active
+  suspended
+}
+
+enum UserRole {
+  owner
+  admin
+  agent
+}
+
+enum ContactStatus {
+  active
+  opted_out
+  blocked
+}
+
+enum PropertyStatus {
+  draft
+  active
+  archived
+}
+
+enum AssetKind {
+  image
+  document
+}
+
+enum CampaignStatus {
+  draft
+  awaiting_confirmation
+  scheduled
+  processing
+  paused
+  completed
+  cancelled
+  failed
+}
+
+enum MessageStatus {
+  queued
+  processing
+  accepted
+  sent
+  delivered
+  read
+  failed
+  cancelled
+  unknown
+}
+
+enum InboundMode {
+  group
+  direct
+}
+
+enum WebhookProcessingStatus {
+  pending
+  processed
+  ignored
+  failed
+}
+
+model Tenant {
+  id                  String       @id @default(uuid()) @db.Uuid
+  name                String
+  tradeName           String?      @map("trade_name")
+  contactPhone        String?      @map("contact_phone")
+  status              TenantStatus @default(active)
+  planCode            String       @default("poc") @map("plan_code")
+  monthlyMessageLimit Int          @default(5000) @map("monthly_message_limit")
+  createdAt           DateTime     @default(now()) @map("created_at")
+
+  users            User[]
+  contacts         Contact[]
+  properties       Property[]
+  campaigns        Campaign[]
+  providerAccounts ProviderAccount[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  name         String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         UserRole   @default(agent)
+  status       String     @default("active")
+  // Telefone autorizado a enviar imóveis pelo canal de entrada (E.164)
+  phoneE164    String?    @map("phone_e164")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, phoneE164])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Contact {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  name        String
+  phoneE164   String        @map("phone_e164")
+  source      String?
+  status      ContactStatus @default(active)
+  // { propertyTypes?: string[], cities?: string[], neighborhoods?: string[], priceMin?, priceMax?, bedroomsMin?, investor?: boolean }
+  preferences Json          @default("{}")
+  tags        String[]      @default([])
+  optedOutAt  DateTime?     @map("opted_out_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  consents   ContactConsent[]
+  recipients CampaignRecipient[]
+
+  @@unique([tenantId, phoneE164])
+  @@index([tenantId, status])
+  @@map("contacts")
+}
+
+model ContactConsent {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  contactId         String    @map("contact_id") @db.Uuid
+  channel           String    @default("whatsapp")
+  purpose           String    @default("marketing_imoveis")
+  scope             String?
+  source            String
+  grantedAt         DateTime  @map("granted_at")
+  revokedAt         DateTime? @map("revoked_at")
+  revokedSource     String?   @map("revoked_source")
+  evidenceReference String?   @map("evidence_reference")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id])
+
+  @@index([tenantId, contactId])
+  @@map("contact_consents")
+}
+
+// Lista de supressão por conta. Indexada por telefone (não por contact_id) para sobreviver
+// a exclusão/reimportação do contato e impedir reativação automática.
+model SuppressionEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  phoneE164  String   @map("phone_e164")
+  reason     String
+  source     String
+  campaignId String?  @map("campaign_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, phoneE164])
+  @@map("suppression_list")
+}
+
+model Property {
+  id              String         @id @default(uuid()) @db.Uuid
+  tenantId        String         @map("tenant_id") @db.Uuid
+  title           String?
+  description     String?
+  propertyType    String?        @map("property_type")
+  transaction     String?
+  price           Decimal?       @db.Decimal(14, 2)
+  city            String?
+  neighborhood    String?
+  bedrooms        Int?
+  suites          Int?
+  bathrooms       Int?
+  parkingSpaces   Int?           @map("parking_spaces")
+  areaM2          Decimal?       @map("area_m2") @db.Decimal(10, 2)
+  attributes      Json           @default("{}")
+  sourceText      String?        @map("source_text")
+  status          PropertyStatus @default(draft)
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  assets    PropertyAsset[]
+  campaigns Campaign[]
+
+  @@index([tenantId, status])
+  @@map("properties")
+}
+
+model PropertyAsset {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  propertyId      String    @map("property_id") @db.Uuid
+  kind            AssetKind
+  storageKey      String    @map("storage_key")
+  mimeType        String    @map("mime_type")
+  sizeBytes       Int       @map("size_bytes")
+  originalName    String?   @map("original_name")
+  sha256          String
+  sourceMessageId String?   @map("source_message_id")
+  position        Int       @default(0)
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([tenantId, sourceMessageId])
+  @@index([tenantId, propertyId])
+  @@map("property_assets")
+}
+
+model Campaign {
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  propertyId        String         @map("property_id") @db.Uuid
+  providerAccountId String?        @map("provider_account_id") @db.Uuid
+  name              String
+  status            CampaignStatus @default(draft)
+  audience          Json           @default("{}")
+  eligibleCount     Int            @default(0) @map("eligible_count")
+  messageTemplate   String         @map("message_template")
+  templateName      String?        @map("template_name")
+  requestedByUserId String?        @map("requested_by_user_id") @db.Uuid
+  confirmedByUserId String?        @map("confirmed_by_user_id") @db.Uuid
+  statusReason      String?        @map("status_reason")
+  scheduledAt       DateTime?      @map("scheduled_at")
+  confirmedAt       DateTime?      @map("confirmed_at")
+  startedAt         DateTime?      @map("started_at")
+  completedAt       DateTime?      @map("completed_at")
+  cancelledAt       DateTime?      @map("cancelled_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  property   Property            @relation(fields: [propertyId], references: [id])
+  recipients CampaignRecipient[]
+
+  @@index([tenantId, status])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  campaignId        String        @map("campaign_id") @db.Uuid
+  contactId         String        @map("contact_id") @db.Uuid
+  phoneE164         String        @map("phone_e164")
+  status            MessageStatus @default(queued)
+  // id da mensagem principal no provedor (a 1ª parte); as demais partes ficam em recipient_messages
+  providerMessageId String?       @map("provider_message_id")
+  attemptCount      Int           @default(0) @map("attempt_count")
+  errorCode         String?       @map("error_code")
+  errorMessage      String?       @map("error_message")
+  queuedAt          DateTime      @default(now()) @map("queued_at")
+  sentAt            DateTime?     @map("sent_at")
+  deliveredAt       DateTime?     @map("delivered_at")
+  readAt            DateTime?     @map("read_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  campaign Campaign           @relation(fields: [campaignId], references: [id])
+  contact  Contact            @relation(fields: [contactId], references: [id])
+  messages RecipientMessage[]
+
+  // Um contato entra no máximo uma vez em cada campanha.
+  @@unique([campaignId, contactId])
+  @@index([tenantId, campaignId, status])
+  @@map("campaign_recipients")
+}
+
+// Cada destinatário pode receber N partes (ex.: imagem+legenda, depois PDF).
+// O status é rastreado por parte para que um retry nunca reenvie uma parte já aceita.
+model RecipientMessage {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  recipientId       String        @map("recipient_id") @db.Uuid
+  part              Int
+  kind              String
+  status            MessageStatus @default(queued)
+  providerMessageId String?       @map("provider_message_id")
+  errorCode         String?       @map("error_code")
+  acceptedAt        DateTime?     @map("accepted_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  recipient CampaignRecipient @relation(fields: [recipientId], references: [id])
+
+  @@unique([recipientId, part])
+  @@index([providerMessageId])
+  @@map("recipient_messages")
+}
+
+model WebhookEvent {
+  id               String                  @id @default(uuid()) @db.Uuid
+  tenantId         String?                 @map("tenant_id") @db.Uuid
+  provider         String
+  externalEventId  String                  @map("external_event_id")
+  eventType        String                  @map("event_type")
+  // POC: payload bruto inline (necessário para a prova de viabilidade). Produção: mover para object storage + retenção.
+  payload          Json
+  receivedAt       DateTime                @default(now()) @map("received_at")
+  processedAt      DateTime?               @map("processed_at")
+  processingStatus WebhookProcessingStatus @default(pending) @map("processing_status")
+  processingNote   String?                 @map("processing_note")
+
+  // Chave de deduplicação de eventos externos.
+  @@unique([provider, externalEventId])
+  @@index([tenantId, receivedAt])
+  @@map("webhook_events")
+}
+
+model ProviderAccount {
+  id               String      @id @default(uuid()) @db.Uuid
+  tenantId         String      @map("tenant_id") @db.Uuid
+  provider         String
+  // Z-API: instanceId
+  accountReference String      @map("account_reference")
+  status           String      @default("active")
+  inboundMode      InboundMode @default(group) @map("inbound_mode")
+  // Z-API: id do grupo privado (termina em "-group") quando inboundMode = group
+  inboundChatId    String?     @map("inbound_chat_id")
+  // sha256 do token secreto que compõe a URL do webhook (Z-API não assina webhooks)
+  webhookTokenHash String      @unique @map("webhook_token_hash")
+  // referência ao segredo cifrado (tabela secrets); nunca token em texto puro
+  configurationRef String?     @map("configuration_reference") @db.Uuid
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("provider_accounts")
+}
+
+// Cofre local da POC: AES-256-GCM com chave mestra fora do banco. Produção: AWS Secrets Manager / KMS.
+model Secret {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ciphertext String
+  iv         String
+  authTag    String   @map("auth_tag")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("secrets")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  actorType String   @map("actor_type")
+  actorId   String?  @map("actor_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  data      Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}

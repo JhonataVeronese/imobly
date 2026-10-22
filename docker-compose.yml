@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: imobzap
+      POSTGRES_PASSWORD: imobzap
+      POSTGRES_DB: imobzap
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data, ./docker/initdb:/docker-entrypoint-initdb.d]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U imobzap"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    # AOF ligado: a fila precisa sobreviver a restart do Redis (tarefas duráveis)
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+
+volumes:
+  pgdata:
+  redisdata:

@@ -3,4 +3,5 @@ dist
 .env
 coverage
 *.log
-data
+# só a pasta de dados locais da raiz (storage/demo); "data" sem barra ignorava web/src/**/data
+/data

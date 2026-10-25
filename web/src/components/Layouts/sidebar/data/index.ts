@@ -1,0 +1,76 @@
+import type { NavSection } from "../types";
+import * as Icons from "../icons";
+
+export const NAV_DATA: NavSection[] = [
+  {
+    label: "Menu principal",
+    items: [
+      {
+        title: "Painel",
+        icon: Icons.PieChart,
+        url: "/painel",
+        items: [],
+      },
+      {
+        title: "Campanhas",
+        icon: Icons.ChatBubble,
+        url: "/campanhas",
+        items: [],
+      },
+      {
+        title: "Imóveis",
+        icon: Icons.HomeIcon,
+        items: [
+          { title: "Imóveis cadastrados", url: "/imoveis" },
+          { title: "Novo imóvel", url: "/imoveis/novo" },
+        ],
+      },
+      {
+        title: "Contatos",
+        icon: Icons.User,
+        items: [
+          { title: "Carteira de contatos", url: "/contatos" },
+          { title: "Novo contato", url: "/contatos/novo" },
+          { title: "Importar CSV", url: "/contatos/importar" },
+          { title: "Descadastros", url: "/contatos/descadastros" },
+        ],
+      },
+      {
+        title: "Simulador WhatsApp",
+        icon: Icons.ChatBubble,
+        url: "/simulador",
+        items: [],
+      },
+      {
+        title: "Manual do WhatsApp",
+        icon: Icons.BookOpen,
+        url: "/manual",
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "Configurações",
+    access: "admin",
+    items: [
+      {
+        title: "Integrações WhatsApp",
+        icon: Icons.FourCircle,
+        url: "/configuracoes/integracoes",
+        items: [],
+      },
+      {
+        title: "Usuários",
+        icon: Icons.Authentication,
+        url: "/configuracoes/usuarios",
+        items: [],
+      },
+      {
+        title: "Auditoria",
+        icon: Icons.ClipboardDocument,
+        url: "/configuracoes/auditoria",
+        items: [],
+      },
+    ],
+  },
+];

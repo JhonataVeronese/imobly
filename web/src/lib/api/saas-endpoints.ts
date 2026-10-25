@@ -1,6 +1,6 @@
 /**
  * Contratos de caminho da API do ImobZap e dos proxies Next.js (BFF).
- * Base backend: `SAAS_API_BASE_URL` (sem barra final).
+ * Base backend: `IMOBLY_API_URL` (sem barra final).
  */
 
 /** Recursos na API do ImobZap (path relativo à base). */

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { SAAS } from "@/lib/api/saas-endpoints";
 import { proxyJsonBody, proxySaasRequest } from "@/lib/server/saas-proxy";
 
-/** Proxy: `POST {SAAS_API_BASE_URL}/simulator/agent` — JSON `{ text }` ou multipart (`text` + um `file`). */
+/** Proxy: `POST {IMOBLY_API_URL}/simulator/agent` — JSON `{ text }` ou multipart (`text` + um `file`). */
 export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.includes("multipart/form-data")) {
     return proxyJsonBody(request, `${SAAS.simulator}/agent`, "POST");

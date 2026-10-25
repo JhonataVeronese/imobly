@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   if (!isSaasApiConfigured()) {
     return NextResponse.json(
-      { error: "API não configurada. Defina SAAS_API_BASE_URL no servidor." },
+      { error: "API não configurada. Defina IMOBLY_API_URL no servidor." },
       { status: 503 },
     );
   }

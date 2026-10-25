@@ -1,6 +1,6 @@
 /**
  * Imóveis — telas `/imoveis`, `/imoveis/novo`, `/imoveis/[id]/editar`.
- * Backend: `{SAAS_API_BASE_URL}/properties` via BFF `/api/properties`.
+ * Backend: `{IMOBLY_API_URL}/properties` via BFF `/api/properties`.
  */
 import { bffRequest, jsonInit } from "@/lib/api/bff-request";
 import { NEXT_PROXY } from "@/lib/api/saas-endpoints";

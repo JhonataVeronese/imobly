@@ -1,6 +1,6 @@
 /**
  * Campanhas — telas `/campanhas` e `/campanhas/[id]`.
- * Backend: `{SAAS_API_BASE_URL}/campaigns` via BFF `/api/campaigns`.
+ * Backend: `{IMOBLY_API_URL}/campaigns` via BFF `/api/campaigns`.
  */
 import { bffRequest, jsonInit } from "@/lib/api/bff-request";
 import { NEXT_PROXY } from "@/lib/api/saas-endpoints";

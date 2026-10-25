@@ -14,7 +14,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function unavailableResponse(): NextResponse {
   return NextResponse.json(
-    { error: "API não configurada. Defina SAAS_API_BASE_URL no servidor." },
+    { error: "API não configurada. Defina IMOBLY_API_URL no servidor." },
     { status: 503 },
   );
 }

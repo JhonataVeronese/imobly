@@ -5,14 +5,14 @@ import { proxyJsonBody, proxySaasRequest, uuidParamOr400 } from "@/lib/server/sa
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-/** Proxy: `GET {SAAS_API_BASE_URL}/properties/:id` (com URLs temporárias dos arquivos) */
+/** Proxy: `GET {IMOBLY_API_URL}/properties/:id` (com URLs temporárias dos arquivos) */
 export async function GET(_request: Request, context: RouteContext) {
   const id = uuidParamOr400((await context.params).id);
   if (id instanceof NextResponse) return id;
   return proxySaasRequest(`${SAAS.properties}/${id}`, { method: "GET", cache: "no-store" });
 }
 
-/** Proxy: `PATCH {SAAS_API_BASE_URL}/properties/:id` — correção dos dados extraídos. */
+/** Proxy: `PATCH {IMOBLY_API_URL}/properties/:id` — correção dos dados extraídos. */
 export async function PATCH(request: Request, context: RouteContext) {
   const id = uuidParamOr400((await context.params).id);
   if (id instanceof NextResponse) return id;

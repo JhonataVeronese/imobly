@@ -5,7 +5,7 @@ import { forwardQuery, proxySaasRequest, uuidParamOr400 } from "@/lib/server/saa
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-/** Proxy: `GET {SAAS_API_BASE_URL}/campaigns/:id/recipients?status=&page=` */
+/** Proxy: `GET {IMOBLY_API_URL}/campaigns/:id/recipients?status=&page=` */
 export async function GET(request: Request, context: RouteContext) {
   const id = uuidParamOr400((await context.params).id);
   if (id instanceof NextResponse) return id;

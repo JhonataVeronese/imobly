@@ -7,6 +7,14 @@ function normalizeBaseUrl(raw: string | undefined): string | null {
   return value ? value.replace(/\/$/, "") : null;
 }
 
+/**
+ * Lê `IMOBLY_<nome>`; aceita o nome antigo `SAAS_<nome>` (herdado do saas-template-web)
+ * para não quebrar ambientes já configurados. Remover o fallback quando todos migrarem.
+ */
+function env(name: string, legacy: string): string | undefined {
+  return process.env[name]?.trim() || process.env[legacy]?.trim() || undefined;
+}
+
 class AppConfig {
   get nodeEnvironment(): string {
     return process.env.NODE_ENV?.trim() || "development";
@@ -16,20 +24,21 @@ class AppConfig {
     return this.nodeEnvironment === "production";
   }
 
+  /** URL da API do imobly (processo `src/main.ts`), usada só pelo servidor Next (BFF). */
   get saasApiBaseUrl(): string | null {
-    return normalizeBaseUrl(process.env.SAAS_API_BASE_URL);
+    return normalizeBaseUrl(env("IMOBLY_API_URL", "SAAS_API_BASE_URL"));
   }
 
   get saasApiToken(): string | null {
-    return process.env.SAAS_API_TOKEN?.trim() || null;
+    return env("IMOBLY_API_TOKEN", "SAAS_API_TOKEN") || null;
   }
 
   get saasApiTenantId(): string | null {
-    return process.env.SAAS_API_TENANT_ID?.trim() || null;
+    return env("IMOBLY_API_TENANT_ID", "SAAS_API_TENANT_ID") || null;
   }
 
   get shouldSendTenantHeader(): boolean {
-    const value = process.env.SAAS_SKIP_TENANT_HEADER?.trim().toLowerCase();
+    const value = env("IMOBLY_SKIP_TENANT_HEADER", "SAAS_SKIP_TENANT_HEADER")?.toLowerCase();
     return value !== "1" && value !== "true" && value !== "yes";
   }
 

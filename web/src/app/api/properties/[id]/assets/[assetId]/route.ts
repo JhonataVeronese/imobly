@@ -5,7 +5,7 @@ import { proxySaasRequest, uuidParamOr400 } from "@/lib/server/saas-proxy";
 
 type RouteContext = { params: Promise<{ id: string; assetId: string }> };
 
-/** Proxy: `DELETE {SAAS_API_BASE_URL}/properties/:id/assets/:assetId` */
+/** Proxy: `DELETE {IMOBLY_API_URL}/properties/:id/assets/:assetId` */
 export async function DELETE(_request: Request, context: RouteContext) {
   const params = await context.params;
   const id = uuidParamOr400(params.id);

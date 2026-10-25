@@ -1,7 +1,7 @@
 /**
  * Cliente HTTP server-side para a API principal (backend Saas).
- * - `X-SAAS-API-Token`: chave da aplicação (mesmo valor de `SAAS_API_TOKEN` no env), exigida pelo middleware da API.
- * - `Authorization: Bearer`: JWT da sessão ou, sem sessão, `SAAS_API_TOKEN` como Bearer (quando aplicável).
+ * - `X-SAAS-API-Token`: chave da aplicação (mesmo valor de `IMOBLY_API_TOKEN` no env), exigida pelo middleware da API.
+ * - `Authorization: Bearer`: JWT da sessão ou, sem sessão, `IMOBLY_API_TOKEN` como Bearer (quando aplicável).
  * - `X-Tenant-Id`: escopo de tenant quando exigido.
  */
 
@@ -25,7 +25,7 @@ export function shouldSendXTenantIdHeader(): boolean {
 }
 
 /**
- * `X-Tenant-Id`: sessão (`activeTenantId` / `tenantHomeId`) ou env `SAAS_API_TENANT_ID`.
+ * `X-Tenant-Id`: sessão (`activeTenantId` / `tenantHomeId`) ou env `IMOBLY_API_TENANT_ID`.
  */
 function resolveXTenantId(
   session: Awaited<ReturnType<typeof verifySessionToken>>,
@@ -39,7 +39,7 @@ function resolveXTenantId(
   return fromSession || envTenant || null;
 }
 
-/** Chave da aplicação (deve coincidir com `SAAS_API_TOKEN` no servidor da API). */
+/** Chave da aplicação (deve coincidir com `IMOBLY_API_TOKEN` no servidor da API). */
 export function appendSaasApiKeyHeader(headers: Headers): void {
   const token = appConfig.saasApiToken;
   if (token) {
@@ -51,7 +51,7 @@ export function appendSaasApiKeyHeader(headers: Headers): void {
 export class SaasMissingTenantIdError extends Error {
   readonly code = "MISSING_TENANT_ID" as const;
   constructor(
-    message = "Parceiro obrigatório: faça login com um parceiro selecionado ou defina SAAS_API_TENANT_ID no servidor.",
+    message = "Parceiro obrigatório: faça login com um parceiro selecionado ou defina IMOBLY_API_TENANT_ID no servidor.",
   ) {
     super(message);
     this.name = "SaasMissingTenantIdError";
@@ -84,7 +84,7 @@ export function nextResponseMissingTenant(e: unknown): NextResponse | null {
 export type SaasFetchInit = RequestInit & {
   /**
    * Não envia `X-Tenant-Id` (ex.: `GET /tenants` para listagem global na tela de login).
-   * Evita filtrar por `SAAS_API_TENANT_ID` quando ainda não há sessão.
+   * Evita filtrar por `IMOBLY_API_TENANT_ID` quando ainda não há sessão.
    */
   skipTenantHeader?: boolean;
   /**
@@ -93,7 +93,7 @@ export type SaasFetchInit = RequestInit & {
   skipAuthorization?: boolean;
   /**
    * Cadastros por tenant e financeiro: exige `X-Tenant-Id` (sessão ou env).
-   * Ignora `SAAS_SKIP_TENANT_HEADER` para esta requisição.
+   * Ignora `IMOBLY_SKIP_TENANT_HEADER` para esta requisição.
    */
   requireTenantId?: boolean;
 };
@@ -104,7 +104,7 @@ export async function saasFetch(
 ): Promise<Response> {
   const base = getBaseUrl();
   if (!base) {
-    throw new SaasApiConfigurationError("SAAS_API_BASE_URL não configurada");
+    throw new SaasApiConfigurationError("IMOBLY_API_URL não configurada");
   }
 
   const {

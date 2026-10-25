@@ -6,17 +6,17 @@ export function CadastroListUnconfigured() {
     <p className="mb-4 rounded-lg border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber dark:bg-amber/15">
       API principal não configurada. Defina{" "}
       <code className="rounded bg-gray-2 px-1 dark:bg-dark-2">
-        SAAS_API_BASE_URL
+        IMOBLY_API_URL
       </code>{" "}
       no ambiente (ex.: arquivo{" "}
       <code className="rounded bg-gray-2 px-1 dark:bg-dark-2">.env.local</code>
       ).       Para listar com escopo do parceiro, defina{" "}
       <code className="rounded bg-gray-2 px-1 dark:bg-dark-2">
-        SAAS_API_TENANT_ID
+        IMOBLY_API_TENANT_ID
       </code>
       . Para admin global sem header de parceiro, use{" "}
       <code className="rounded bg-gray-2 px-1 dark:bg-dark-2">
-        SAAS_SKIP_TENANT_HEADER=true
+        IMOBLY_SKIP_TENANT_HEADER=true
       </code>
       .
     </p>

@@ -10,7 +10,7 @@ function isCampaignAction(value: string): value is CampaignAction {
   return (CAMPAIGN_ACTIONS as readonly string[]).includes(value);
 }
 
-/** Proxy: `POST {SAAS_API_BASE_URL}/campaigns/:id/(confirm|pause|resume|cancel)` */
+/** Proxy: `POST {IMOBLY_API_URL}/campaigns/:id/(confirm|pause|resume|cancel)` */
 export async function POST(_request: Request, context: RouteContext) {
   const params = await context.params;
   const id = uuidParamOr400(params.id);

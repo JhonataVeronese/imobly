@@ -1,6 +1,6 @@
 /**
  * Simulador de WhatsApp — tela `/simulador`.
- * Backend: `{SAAS_API_BASE_URL}/simulator` via BFF `/api/simulator`.
+ * Backend: `{IMOBLY_API_URL}/simulator` via BFF `/api/simulator`.
  */
 import { bffRequest, jsonInit } from "@/lib/api/bff-request";
 import { NEXT_PROXY } from "@/lib/api/saas-endpoints";

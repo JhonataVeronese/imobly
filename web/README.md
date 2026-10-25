@@ -27,12 +27,12 @@ Listagens seguem o padrão do template: `page.tsx` (Server Component) carrega os
 ## Configuração
 
 ```bash
-cp .env.example .env.local     # SAAS_API_BASE_URL e JWT_SECRET
+cp .env.example .env.local     # IMOBLY_API_URL e JWT_SECRET
 npm install
 npm run dev                    # http://localhost:3003
 ```
 
-A API do ImobZap (raiz do repositório) precisa estar rodando em `SAAS_API_BASE_URL`.
+A API do imobly (raiz do repositório) precisa estar rodando em `IMOBLY_API_URL` (o nome antigo `SAAS_API_BASE_URL` ainda é aceito).
 
 ## Identidade visual
 

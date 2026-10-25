@@ -52,12 +52,12 @@ async function postJson<T>(
 }
 
 /**
- * `POST {SAAS_API_BASE_URL}/auth/login` seguido de `GET /me` para obter nome,
+ * `POST {IMOBLY_API_URL}/auth/login` seguido de `GET /me` para obter nome,
  * e-mail e organização — a resposta do login traz apenas o token e o tenant.
  */
 export async function loginOnBackend(email: string, password: string): Promise<NormalizedLogin> {
   const base = appConfig.saasApiBaseUrl;
-  if (!base) throw new SaasApiConfigurationError("SAAS_API_BASE_URL não configurada");
+  if (!base) throw new SaasApiConfigurationError("IMOBLY_API_URL não configurada");
 
   const headers = new Headers({ "Content-Type": "application/json" });
   appendSaasApiKeyHeader(headers);

@@ -1,6 +1,6 @@
 /**
  * Contatos, consentimento e descadastro — telas `/contatos/*`.
- * Backend: `{SAAS_API_BASE_URL}/contacts` via BFF `/api/contacts`.
+ * Backend: `{IMOBLY_API_URL}/contacts` via BFF `/api/contacts`.
  */
 import { bffRequest, jsonInit } from "@/lib/api/bff-request";
 import { NEXT_PROXY } from "@/lib/api/saas-endpoints";

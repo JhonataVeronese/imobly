@@ -5,7 +5,7 @@ import { forwardQuery, proxySaasRequest } from "@/lib/server/saas-proxy";
 
 const MAX_CSV_BYTES = 10 * 1024 * 1024;
 
-/** Proxy: `POST {SAAS_API_BASE_URL}/contacts/import?fileName=` com corpo `text/csv`. */
+/** Proxy: `POST {IMOBLY_API_URL}/contacts/import?fileName=` com corpo `text/csv`. */
 export async function POST(request: Request) {
   const csv = await request.text();
   if (!csv.trim()) return NextResponse.json({ error: "Arquivo CSV vazio" }, { status: 400 });

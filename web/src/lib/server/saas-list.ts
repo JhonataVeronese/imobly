@@ -22,7 +22,7 @@ export type FetchSaasListOptions = {
  * Lista recursos na API principal (uso em Server Components / rotas server).
  * Não passa pelo proxy Next — evita URL relativa e repete a mesma lógica de headers do `saasFetch`.
  *
- * Sempre opta por render dinâmico: no build Docker `SAAS_API_BASE_URL` ainda não
+ * Sempre opta por render dinâmico: no build Docker `IMOBLY_API_URL` ainda não
  * existe e um early-return sem `cookies()`/`connection()` geraria HTML estático vazio.
  */
 export async function fetchSaasList<T>(

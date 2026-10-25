@@ -8,7 +8,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 const MAX_FILES = 10;
 
 /**
- * Proxy multipart: `POST {SAAS_API_BASE_URL}/properties/:id/assets`.
+ * Proxy multipart: `POST {IMOBLY_API_URL}/properties/:id/assets`.
  * Tipo real e tamanho são validados pela API (magic bytes); aqui só limitamos a quantidade.
  */
 export async function POST(request: Request, context: RouteContext) {

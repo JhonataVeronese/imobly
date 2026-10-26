@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# --include=dev: o build precisa do TypeScript e da CLI do Prisma mesmo que a plataforma injete
+# NODE_ENV=production no build (o Coolify faz isso com variáveis marcadas como "build time").
+RUN npm ci --include=dev
 
 COPY prisma ./prisma
 RUN npx prisma generate

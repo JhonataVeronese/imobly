@@ -1,0 +1,14 @@
+# Imagem da API/worker: só o necessário para compilar.
+node_modules
+dist
+data
+coverage
+web
+tests
+scripts
+docs
+.git
+.env
+.env.*
+!.env.example
+*.log

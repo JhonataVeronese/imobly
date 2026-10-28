@@ -92,7 +92,7 @@ function mediaValue(m: MediaRef): string {
   throw new ProviderError("permanent", "media_missing", "Mídia sem URL nem conteúdo");
 }
 
-function classifyNetworkError(err: unknown): ProviderError {
+export function classifyNetworkError(err: unknown): ProviderError {
   const e = err as { name?: string; cause?: { code?: string }; message?: string };
   if (e.name === "TimeoutError" || e.name === "AbortError") {
     return new ProviderError("timeout", "timeout", "Timeout aguardando resposta do provedor");

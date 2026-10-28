@@ -1,5 +1,6 @@
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
+import { gunzipSync } from "node:zlib";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import type { AppDeps } from "../application/deps.js";
@@ -12,6 +13,13 @@ import { registerPropertyRoutes } from "./routes/properties.js";
 import { registerProviderRoutes } from "./routes/providers.js";
 import { registerSimulatorRoutes } from "./routes/simulator.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    /** Corpo JSON como chegou (já descompactado), para verificação de assinatura. */
+    rawBody?: Buffer;
+  }
+}
 
 export interface ServerOptions {
   jwtSecret: string;
@@ -31,6 +39,20 @@ export async function buildServer(deps: AppDeps, opts: ServerOptions): Promise<F
     limits: { fileSize: Math.max(deps.config.MAX_IMAGE_BYTES, deps.config.MAX_DOCUMENT_BYTES), files: 10 },
   });
   app.addContentTypeParser("text/csv", { parseAs: "string", bodyLimit: 10 * 1024 * 1024 }, (_req, body, done) => done(null, body));
+
+  // JSON com corpo bruto preservado (assinatura HMAC dos webhooks da Omni é sobre os bytes exatos)
+  // e gzip aceito: a Omni comprime requisições a partir de 1 KB.
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser("application/json", { parseAs: "buffer" }, (req, body, done) => {
+    try {
+      const raw = body as Buffer;
+      const buf = /gzip/i.test(String(req.headers["content-encoding"] ?? "")) ? gunzipSync(raw, { maxOutputLength: 10 * 1024 * 1024 }) : raw;
+      req.rawBody = buf;
+      done(null, buf.length ? JSON.parse(buf.toString("utf8")) : undefined);
+    } catch (err) {
+      done(Object.assign(new Error(`JSON inválido: ${(err as Error).message}`), { statusCode: 400 }), undefined);
+    }
+  });
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof DomainError) return reply.status(err.httpStatus).send({ error: err.code, message: err.message });

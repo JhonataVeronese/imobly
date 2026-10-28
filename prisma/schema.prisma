@@ -93,16 +93,16 @@ model Tenant {
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  tenantId     String     @map("tenant_id") @db.Uuid
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
   name         String
-  email        String     @unique
-  passwordHash String     @map("password_hash")
-  role         UserRole   @default(agent)
-  status       String     @default("active")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(agent)
+  status       String   @default("active")
   // Telefone autorizado a enviar imóveis pelo canal de entrada (E.164)
-  phoneE164    String?    @map("phone_e164")
-  createdAt    DateTime   @default(now()) @map("created_at")
+  phoneE164    String?  @map("phone_e164")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
@@ -300,17 +300,19 @@ model RecipientMessage {
 }
 
 model WebhookEvent {
-  id               String                  @id @default(uuid()) @db.Uuid
-  tenantId         String?                 @map("tenant_id") @db.Uuid
-  provider         String
-  externalEventId  String                  @map("external_event_id")
-  eventType        String                  @map("event_type")
+  id                String                  @id @default(uuid()) @db.Uuid
+  tenantId          String?                 @map("tenant_id") @db.Uuid
+  // Conta (número) que recebeu o evento, quando conhecida. Evita depender do id da instância no payload.
+  providerAccountId String?                 @map("provider_account_id") @db.Uuid
+  provider          String
+  externalEventId   String                  @map("external_event_id")
+  eventType         String                  @map("event_type")
   // POC: payload bruto inline (necessário para a prova de viabilidade). Produção: mover para object storage + retenção.
-  payload          Json
-  receivedAt       DateTime                @default(now()) @map("received_at")
-  processedAt      DateTime?               @map("processed_at")
-  processingStatus WebhookProcessingStatus @default(pending) @map("processing_status")
-  processingNote   String?                 @map("processing_note")
+  payload           Json
+  receivedAt        DateTime                @default(now()) @map("received_at")
+  processedAt       DateTime?               @map("processed_at")
+  processingStatus  WebhookProcessingStatus @default(pending) @map("processing_status")
+  processingNote    String?                 @map("processing_note")
 
   // Chave de deduplicação de eventos externos.
   @@unique([provider, externalEventId])

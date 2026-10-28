@@ -36,6 +36,8 @@ export const audienceSchema = z
     cities: z.array(z.string()).optional(),
     neighborhoods: z.array(z.string()).optional(),
     investorOnly: z.boolean().optional(),
+    /** Lista explícita (ex.: contatos compartilhados pelo corretor no WhatsApp). Com ela, só esses contatos. */
+    contactIds: z.array(z.string().uuid()).max(5000).optional(),
   })
   .strict();
 export type Audience = z.infer<typeof audienceSchema>;

@@ -12,6 +12,13 @@ export interface InboundMedia {
   caption: string | null;
 }
 
+/** Cartão de contato compartilhado na conversa ("Enviar contato" do WhatsApp). */
+export interface SharedContact {
+  name: string | null;
+  /** Só dígitos, como o provedor entrega (normalizar antes de gravar). */
+  phone: string;
+}
+
 export interface InboundMessageEvent {
   type: "message";
   externalEventId: string;
@@ -26,6 +33,8 @@ export interface InboundMessageEvent {
   senderName: string | null;
   text: string | null;
   media: InboundMedia[];
+  /** Contatos compartilhados nesta mensagem (vazio na maioria das mensagens). */
+  contacts: SharedContact[];
   occurredAt: Date;
 }
 

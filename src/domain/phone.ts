@@ -34,3 +34,12 @@ export function phoneMatchKey(e164OrDigits: string): string {
   if (d.startsWith("55") && d.length === 13 && d[4] === "9") return d.slice(0, 4) + d.slice(5);
   return d;
 }
+
+/** Variações de um número BR com/sem o 9º dígito, para casar remetentes. */
+export function phoneVariants(digits: string): string[] {
+  const d = digits.replace(/\D/g, "");
+  const out = new Set([`+${d}`]);
+  if (d.startsWith("55") && d.length === 13 && d[4] === "9") out.add(`+${d.slice(0, 4)}${d.slice(5)}`);
+  if (d.startsWith("55") && d.length === 12 && /[6-9]/.test(d[4]!)) out.add(`+${d.slice(0, 4)}9${d.slice(4)}`);
+  return [...out];
+}

@@ -3,9 +3,14 @@
  */
 import { bffRequest, jsonInit } from "@/lib/api/bff-request";
 import { NEXT_PROXY } from "@/lib/api/saas-endpoints";
-import type { ProviderAccountCreated, UserCreatePayload, UserListItem, ZapiAccountPayload } from "@/types/configuracao";
+import type { OmniAccountPayload, ProviderAccountCreated, UserCreatePayload, UserListItem, ZapiAccountPayload } from "@/types/configuracao";
 
 export function createZapiAccount(payload: ZapiAccountPayload): Promise<ProviderAccountCreated> {
+  return bffRequest<ProviderAccountCreated>(NEXT_PROXY.providerAccounts, jsonInit("POST", payload));
+}
+
+/** A API cria o webhook (assinado) na Omni sozinha: nada a configurar no painel da Omni. */
+export function createOmniAccount(payload: OmniAccountPayload): Promise<ProviderAccountCreated> {
   return bffRequest<ProviderAccountCreated>(NEXT_PROXY.providerAccounts, jsonInit("POST", payload));
 }
 

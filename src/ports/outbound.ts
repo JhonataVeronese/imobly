@@ -43,6 +43,11 @@ export class ProviderError extends Error {
 
 export interface OutboundMessagingAdapter {
   readonly provider: string;
+  /**
+   * Como o provedor quer receber mídia. Ausente = segue ASSET_DELIVERY da configuração.
+   * `url`: precisa de link público assinado, válido por `ttlSeconds` (ex.: Omni Z-API).
+   */
+  readonly mediaDelivery?: { mode: "url"; ttlSeconds: number };
   /** `to`: telefone E.164 ou identificador de chat do provedor (ex.: grupo). */
   send(to: string, content: OutboundContent): Promise<SendResult>;
 }

@@ -36,7 +36,11 @@ export async function findEligibleContacts(
     (await db.suppressionEntry.findMany({ where: { tenantId }, select: { phoneE164: true } })).map((s) => s.phoneE164),
   );
   const candidates = await db.contact.findMany({
-    where: { ...eligibleContactWhere(tenantId), ...sandboxContactFilter(sandbox) },
+    where: {
+      ...eligibleContactWhere(tenantId),
+      ...sandboxContactFilter(sandbox),
+      ...(audience.contactIds ? { id: { in: audience.contactIds } } : {}),
+    },
     select: { id: true, phoneE164: true, preferences: true, tags: true },
   });
   const profile = propertyProfile(property);

@@ -11,6 +11,9 @@ import { EncryptedDbSecrets } from "./infra/secrets/db-secrets.js";
 import { LocalDiskStorage, S3Storage } from "./infra/storage/storage.js";
 import { ZapiInboundAdapter } from "./infra/zapi/zapi-inbound.js";
 import { ZapiOutboundAdapter } from "./infra/zapi/zapi-outbound.js";
+import { OmniClient } from "./infra/omni/omni-client.js";
+import { OmniInboundAdapter } from "./infra/omni/omni-inbound.js";
+import { OmniOutboundAdapter } from "./infra/omni/omni-outbound.js";
 import { RedisSimulatorLog, SimulatorInboundAdapter, SimulatorOutboundAdapter, SIMULATOR_PROVIDER } from "./infra/simulator/simulator.js";
 import { Redis } from "ioredis";
 import type { OutboundMessagingAdapter } from "./ports/outbound.js";
@@ -70,10 +73,21 @@ export function createContainer(cfg: AppConfig): Container {
     queue,
     storage,
     secrets,
-    inbound: { zapi: new ZapiInboundAdapter(), fake: new FakeInboundAdapter(), [SIMULATOR_PROVIDER]: new SimulatorInboundAdapter() },
+    inbound: { zapi: new ZapiInboundAdapter(), fake: new FakeInboundAdapter(), [SIMULATOR_PROVIDER]: new SimulatorInboundAdapter(), omni: new OmniInboundAdapter() },
     async outboundFor(account: ProviderAccount) {
       if (account.provider === "fake") return fake;
       if (account.provider === SIMULATOR_PROVIDER) return new SimulatorOutboundAdapter(fake, simulator, account.tenantId);
+      if (account.provider === "omni") {
+        const cached = zapiCache.get(account.id);
+        if (cached) return cached;
+        if (!account.configurationRef) throw new Error("conta Omni sem credenciais");
+        const s = await secrets.get(account.tenantId, account.configurationRef);
+        const adapter = new OmniOutboundAdapter(
+          new OmniClient({ channelId: account.accountReference, secretKey: s.secretKey! }, cfg.OMNI_BASE_URL, cfg.PROVIDER_TIMEOUT_MS),
+        );
+        zapiCache.set(account.id, adapter);
+        return adapter;
+      }
       if (account.provider === "zapi") {
         const cached = zapiCache.get(account.id);
         if (cached) return cached;
@@ -94,6 +108,7 @@ export function createContainer(cfg: AppConfig): Container {
     config: cfg,
     pacing: pacingPolicy(cfg),
     simulator,
+    omni: { baseUrl: cfg.OMNI_BASE_URL, timeoutMs: cfg.PROVIDER_TIMEOUT_MS },
     logger,
     now: () => new Date(),
   };

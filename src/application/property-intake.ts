@@ -15,11 +15,13 @@ import {
   confirmCampaign,
   createCampaign,
   pauseCampaign,
+  parseAudience,
   refreshEstimate,
   resumeCampaign,
   sendEstimate,
 } from "./campaign-service.js";
 import { audit, isUniqueViolation, type AppDeps } from "./deps.js";
+import { attachSharedContacts, listedContactNames } from "./shared-contacts.js";
 
 const DRAFT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
@@ -160,7 +162,7 @@ export async function handleAgentMessage(
           data: { tenantId, createdByUserId: user.id, status: "draft", ...propertyData(extracted, msg.text!) },
         });
     await audit(deps.db, tenantId, actor, "property.ingested", "property", draft.id, { messageId: msg.messageId });
-  } else if (msg.media.length > 0 && !draft) {
+  } else if ((msg.media.length > 0 || msg.contacts.length > 0) && !draft) {
     draft = await deps.db.property.create({ data: { tenantId, createdByUserId: user.id, status: "draft" } });
   }
 
@@ -191,6 +193,15 @@ export async function handleAgentMessage(
         actor,
       );
 
+  if (msg.contacts.length > 0) {
+    const r = await attachSharedContacts(deps, account, user, campaign, msg.contacts, msg.messageId);
+    campaign = await refreshEstimate(deps, tenantId, campaign.id);
+    const notes = [
+      r.suppressed.length ? `⚠️ Não entram (pediram para não receber ofertas): ${r.suppressed.join(", ")}` : null,
+      r.invalid.length ? `⚠️ Número inválido, ignorado: ${r.invalid.join(", ")}` : null,
+    ].filter(Boolean);
+    if (notes.length) await reply(notes.join("\n"));
+  }
   if (rejected.length) await reply(`⚠️ Arquivo(s) rejeitado(s):\n${rejected.join("\n")}`);
   // Texto e fotos chegam como mensagens separadas, em rajada. Em vez de responder a cada uma,
   // agendamos UM resumo que é adiado enquanto novas mensagens do mesmo rascunho continuam chegando.
@@ -198,7 +209,7 @@ export async function handleAgentMessage(
     { tenantId, propertyId: draft.id, providerAccountId: account.id, chatId: msg.chatId },
     DRAFT_SUMMARY_DEBOUNCE_MS,
   );
-  return extracted && isPropertyText ? "draft_updated" : "assets_attached";
+  return extracted && isPropertyText ? "draft_updated" : msg.contacts.length > 0 ? "contacts_shared" : "assets_attached";
 }
 
 export const DRAFT_SUMMARY_DEBOUNCE_MS = 8000;
@@ -208,6 +219,7 @@ export const HELP_TEXT = [
   "",
   "*Divulgar um imóvel:* envie o texto do anúncio (tipo, valor, bairro, quartos, vagas) + fotos + PDF. Eu respondo com um resumo e o público estimado.",
   "*Corrigir:* envie o texto de novo antes de confirmar.",
+  "*Escolher quem recebe:* compartilhe os contatos dos clientes (Enviar contato) no mesmo rascunho. Ao compartilhar, você confirma que eles autorizaram receber ofertas.",
   "",
   "*CONFIRMAR* — coloca a campanha na fila de envio",
   "*CANCELAR* — descarta o rascunho (nada é enviado)",
@@ -235,7 +247,17 @@ export async function sendDraftSummary(deps: AppDeps, job: DraftSummaryJob): Pro
     await sendReply(deps, account, job.chatId, `📎 ${count} anexo(s) recebido(s). Envie também o texto do imóvel.`);
     return "assets_only";
   }
-  await sendReply(deps, account, job.chatId, summary(property, assets, campaign.eligibleCount, deps.config.PUBLIC_BASE_URL, sendEstimate(deps, campaign.eligibleCount, account.provider)?.label ?? null));
+  const listed = parseAudience(campaign.audience).contactIds;
+  const names = listed?.length && campaign.eligibleCount ? await listedContactNames(deps, tenantId, listed) : [];
+  const audienceLine = listed?.length
+    ? `👥 Público: *${campaign.eligibleCount} contato(s)* enviados por você${names.length ? `: ${names.join(", ")}${listed.length > names.length ? "…" : ""}` : ""}.`
+    : `👥 Público estimado: *${campaign.eligibleCount} contatos elegíveis*.`;
+  await sendReply(
+    deps,
+    account,
+    job.chatId,
+    summary(property, assets, audienceLine, deps.config.PUBLIC_BASE_URL, sendEstimate(deps, campaign.eligibleCount, account.provider)?.label ?? null),
+  );
   return "summary_sent";
 }
 
@@ -341,7 +363,7 @@ export async function saveAssetBuffer(
 function summary(
   p: Property,
   assets: { kind: string; _count: number }[],
-  eligible: number,
+  audienceLine: string,
   baseUrl: string,
   eta: string | null,
 ): string {
@@ -363,7 +385,7 @@ function summary(
     units.length > 0 && p.neighborhood ? `📍 ${p.neighborhood}${p.city ? `, ${p.city}` : ""}` : null,
     `📎 ${photos} foto(s), ${pdfs} PDF(s)`,
     missing.length ? `ℹ️ Não informado: ${missing.join(", ")}` : null,
-    `👥 Público estimado: *${eligible} contatos elegíveis*.`,
+    audienceLine,
     eta ? `⏱ Envio em fila, previsão de ${eta}.` : null,
     "",
     "Campanha pronta para revisão. Responda *CONFIRMAR* para iniciar o envio ou *CANCELAR* para descartar.",

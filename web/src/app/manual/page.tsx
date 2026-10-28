@@ -180,20 +180,26 @@ export default function ManualPage() {
               <Step n={2} title="Envie as fotos e o PDF">
                 Pode mandar antes ou depois do texto, em qualquer ordem. Tudo que chegar em sequência entra no mesmo imóvel.
               </Step>
-              <Step n={3} title="Espere o resumo (alguns segundos)">
+              <Step n={3} title="Opcional: escolha quem recebe">
+                Compartilhe os contatos dos clientes (no WhatsApp: <strong>clipe → Contato</strong>, um ou vários). Eles são
+                cadastrados na hora e a campanha vai <strong>só para eles</strong>. Sem compartilhar contatos, o imobly escolhe na
+                carteira quem combina com o imóvel. Ao compartilhar, você confirma que esses clientes autorizaram receber ofertas;
+                quem já pediu para sair nunca recebe.
+              </Step>
+              <Step n={4} title="Espere o resumo (alguns segundos)">
                 Quando você para de mandar mensagens, chega <strong>um único resumo</strong> com o que foi entendido: título,
                 valor, características, quantidade de fotos e PDFs, o que ficou faltando, o <strong>público estimado</strong> e a{" "}
                 <strong>previsão de envio</strong>.
               </Step>
-              <Step n={4} title="Corrija, se precisar">
+              <Step n={5} title="Corrija, se precisar">
                 Algo errado? Envie o texto de novo, corrigido. O rascunho é atualizado e um novo resumo chega. Para desistir,
                 responda <Cmd>CANCELAR</Cmd>.
               </Step>
-              <Step n={5} title="Responda CONFIRMAR">
+              <Step n={6} title="Responda CONFIRMAR">
                 A campanha entra na fila de envio. A lista de clientes é fechada nesse momento: quem entrar na carteira depois
                 não recebe esta campanha.
               </Step>
-              <Step n={6} title="Acompanhe">
+              <Step n={7} title="Acompanhe">
                 Responda <Cmd>STATUS</Cmd> quando quiser. Precisa interromper? <Cmd>PAUSAR</Cmd> e, depois,{" "}
                 <Cmd>RETOMAR</Cmd>.
               </Step>

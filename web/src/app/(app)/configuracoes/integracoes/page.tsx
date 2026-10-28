@@ -8,6 +8,7 @@ import type { ProviderAccount, WebhookEvent } from "@/types/configuracao";
 import type { Metadata } from "next";
 import { AccountsTableClient } from "./_components/accounts-table-client";
 import { WebhookEventsTable } from "./_components/webhook-events-table";
+import { OmniForm } from "./_components/omni-form";
 import { ZapiForm } from "./_components/zapi-form";
 
 export const metadata: Metadata = { title: "Integrações WhatsApp" };
@@ -21,12 +22,13 @@ export default async function IntegracoesPage() {
   return (
     <>
       <Breadcrumb pageName="Integrações WhatsApp" />
-      <PageIntro description="Provedor usado para receber imóveis do corretor e enviar as campanhas. O envio não usa rotação de números nem atrasos aleatórios." />
+      <PageIntro description="Provedor usado para receber imóveis do corretor e enviar as campanhas. O envio sai em fila, no ritmo seguro de cada número." />
       <CadastroListAlert result={accounts} />
       <div className="space-y-6">
         <ListCard title="Integrações">
           <AccountsTableClient rows={accounts.data} />
         </ListCard>
+        <OmniForm />
         <ZapiForm />
         <ListCard title="Últimos webhooks recebidos">
           <CadastroListAlert result={events} />

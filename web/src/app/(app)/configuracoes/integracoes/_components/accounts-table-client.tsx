@@ -10,7 +10,12 @@ import type { ProviderAccount } from "@/types/configuracao";
 import { useState } from "react";
 import { WebhookUrlNotice } from "./webhook-url-notice";
 
-const PROVIDER_LABEL: Record<string, string> = { zapi: "Z-API", fake: "Simulado (desenvolvimento)" };
+const PROVIDER_LABEL: Record<string, string> = {
+  zapi: "Z-API",
+  omni: "Omni Z-API",
+  fake: "Simulado (desenvolvimento)",
+  simulator: "Simulador do painel",
+};
 
 export function AccountsTableClient({ rows }: { rows: ProviderAccount[] }) {
   const [rotateTarget, setRotateTarget] = useState<ProviderAccount | null>(null);

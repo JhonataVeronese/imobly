@@ -22,6 +22,8 @@ export interface AppDeps {
   >;
   /** Ritmo de envio por número — usado para previsões nas mensagens ao corretor. */
   pacing?: PacingPolicy;
+  /** Acesso à API da Omni Z-API (criar webhook ao cadastrar a integração). Ausente = Omni indisponível. */
+  omni?: { baseUrl: string; timeoutMs: number; fetchImpl?: typeof fetch };
   /** Conversa do simulador do painel (ausente = simulador desligado). */
   simulator?: SimulatorLogPort;
   logger: Logger;

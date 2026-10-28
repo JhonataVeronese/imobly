@@ -1,7 +1,7 @@
 import type { PropertyAsset } from "@prisma/client";
 import { aggregateParts, isAcceptedOrBetter, type MessageStatus } from "../domain/message-status.js";
 import { formatBRL, renderTemplate } from "../domain/template.js";
-import { ProviderError, type MediaRef, type OutboundContent } from "../ports/outbound.js";
+import { ProviderError, type MediaRef, type OutboundContent, type OutboundMessagingAdapter } from "../ports/outbound.js";
 import { maybeComplete, pauseCampaign } from "./campaign-service.js";
 import { canReceiveMarketing } from "./consent-service.js";
 import type { AppDeps } from "./deps.js";
@@ -113,13 +113,13 @@ export async function processRecipient(deps: AppDeps, job: SendAttempt): Promise
     if (claimed.count === 0) return "skipped_settled";
   }
 
-  const plan = buildPlan(deps, campaign, recipient.contact.name);
+  const account = await db.providerAccount.findFirstOrThrow({ where: { id: campaign.providerAccountId!, tenantId } });
+  const adapter = await deps.outboundFor(account);
+  const plan = buildPlan(deps, campaign, recipient.contact.name, adapter.mediaDelivery);
   await db.recipientMessage.createMany({
     data: plan.map((p, part) => ({ tenantId, recipientId: recipient.id, part, kind: p.kind })),
     skipDuplicates: true,
   });
-  const account = await db.providerAccount.findFirstOrThrow({ where: { id: campaign.providerAccountId!, tenantId } });
-  const adapter = await deps.outboundFor(account);
 
   const parts = await db.recipientMessage.findMany({ where: { recipientId: recipient.id }, orderBy: { part: "asc" } });
   let sentNow = 0;
@@ -242,7 +242,9 @@ async function loadCampaign(deps: AppDeps, id: string) {
 }
 
 /** Partes da mensagem: [imagem de destaque + texto] ou [texto], seguida do PDF quando existir. */
-function buildPlan(deps: AppDeps, campaign: CampaignWithProperty, contactName: string): PartPlan[] {
+type MediaDelivery = OutboundMessagingAdapter["mediaDelivery"];
+
+function buildPlan(deps: AppDeps, campaign: CampaignWithProperty, contactName: string, delivery: MediaDelivery): PartPlan[] {
   const p = campaign.property;
   const firstName = contactName.split(/\s+/)[0] ?? "";
   const text = renderTemplate(campaign.messageTemplate, {
@@ -258,7 +260,7 @@ function buildPlan(deps: AppDeps, campaign: CampaignWithProperty, contactName: s
   const pdf = p.assets.find((a) => a.kind === "document");
   const plan: PartPlan[] = [];
   if (image) {
-    plan.push({ kind: "image", build: async () => ({ kind: "image", media: await mediaRef(deps, image), caption: text }) });
+    plan.push({ kind: "image", build: async () => ({ kind: "image", media: await mediaRef(deps, image, delivery), caption: text }) });
   } else {
     plan.push({ kind: "text", build: async () => ({ kind: "text", text }) });
   }
@@ -267,7 +269,7 @@ function buildPlan(deps: AppDeps, campaign: CampaignWithProperty, contactName: s
       kind: "document",
       build: async () => ({
         kind: "document",
-        media: await mediaRef(deps, pdf),
+        media: await mediaRef(deps, pdf, delivery),
         extension: "pdf",
         fileName: pdf.originalName?.replace(/\.pdf$/i, "") || p.title || "Ficha do imóvel",
       }),
@@ -278,15 +280,17 @@ function buildPlan(deps: AppDeps, campaign: CampaignWithProperty, contactName: s
 
 const mediaCache = new Map<string, { at: number; ref: MediaRef }>();
 
-async function mediaRef(deps: AppDeps, asset: PropertyAsset): Promise<MediaRef> {
-  const cached = mediaCache.get(asset.id);
-  const ttlMs = (deps.config.ASSET_URL_TTL_SECONDS * 1000) / 2;
-  if (cached && Date.now() - cached.at < ttlMs) return cached.ref;
-  const ref: MediaRef =
-    deps.config.ASSET_DELIVERY === "url"
-      ? { mimeType: asset.mimeType, url: await deps.storage.signedUrl(asset.storageKey, deps.config.ASSET_URL_TTL_SECONDS) }
-      : { mimeType: asset.mimeType, base64: (await deps.storage.get(asset.storageKey)).toString("base64") };
+/** O provedor pode exigir URL (ex.: Omni); senão vale ASSET_DELIVERY. */
+async function mediaRef(deps: AppDeps, asset: PropertyAsset, delivery: MediaDelivery): Promise<MediaRef> {
+  const asUrl = delivery?.mode === "url" || deps.config.ASSET_DELIVERY === "url";
+  const ttlSeconds = delivery?.ttlSeconds ?? deps.config.ASSET_URL_TTL_SECONDS;
+  const key = `${asset.id}:${asUrl ? `url:${ttlSeconds}` : "base64"}`;
+  const cached = mediaCache.get(key);
+  if (cached && Date.now() - cached.at < (ttlSeconds * 1000) / 2) return cached.ref;
+  const ref: MediaRef = asUrl
+    ? { mimeType: asset.mimeType, url: await deps.storage.signedUrl(asset.storageKey, ttlSeconds) }
+    : { mimeType: asset.mimeType, base64: (await deps.storage.get(asset.storageKey)).toString("base64") };
   if (mediaCache.size > 200) mediaCache.clear();
-  mediaCache.set(asset.id, { at: Date.now(), ref });
+  mediaCache.set(key, { at: Date.now(), ref });
   return ref;
 }

@@ -2,7 +2,7 @@ export type InboundMode = "group" | "direct";
 
 export type ProviderAccount = {
   id: string;
-  provider: "zapi" | "fake";
+  provider: "zapi" | "omni" | "fake" | "simulator";
   accountReference: string;
   status: string;
   inboundMode: InboundMode;
@@ -15,6 +15,14 @@ export type ZapiAccountPayload = {
   instanceId: string;
   instanceToken: string;
   clientToken?: string;
+  inboundMode: InboundMode;
+  inboundChatId?: string;
+};
+
+export type OmniAccountPayload = {
+  provider: "omni";
+  channelId: string;
+  secretKey: string;
   inboundMode: InboundMode;
   inboundChatId?: string;
 };

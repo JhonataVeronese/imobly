@@ -5,6 +5,7 @@ import {
   type InboundAdapter,
   type InboundMedia,
   type NormalizedInboundEvent,
+  type SharedContact,
 } from "../../ports/inbound.js";
 
 /**
@@ -36,6 +37,9 @@ const received = z
     text: z.object({ message: z.string().nullish() }).passthrough().nullish(),
     image: media.nullish(),
     document: media.nullish(),
+    // "Enviar contato": um cartão em `contact`; vários de uma vez podem vir em `contacts`.
+    contact: media.nullish(),
+    contacts: z.array(media).nullish(),
   })
   .passthrough();
 
@@ -69,6 +73,26 @@ const STATUS_MAP: Record<string, MessageStatus | undefined> = {
 
 function str(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+/**
+ * Telefones de um cartão de contato: `phones` quando o provedor já extrai, senão as linhas TEL
+ * do vCard (preferindo o `waid`, que é o número do WhatsApp, só dígitos com DDI).
+ */
+export function contactsFromCard(card: Record<string, unknown>): SharedContact[] {
+  const vcard = str(card.vCard) ?? str(card.vcard) ?? "";
+  const fromVcard = vcard.match(/^FN:(.*)$/m)?.[1]?.trim() || null;
+  const name = str(card.displayName) ?? str(card.name) ?? fromVcard;
+  const phones = new Set<string>();
+  if (Array.isArray(card.phones)) for (const ph of card.phones) if (typeof ph === "string") phones.add(ph.replace(/\D/g, ""));
+  for (const line of vcard.split(/\r?\n/)) {
+    if (!/^(item\d+\.)?TEL/i.test(line)) continue;
+    const waid = line.match(/waid=(\d+)/i)?.[1];
+    const raw = waid ?? line.slice(line.indexOf(":") + 1);
+    const digits = raw.replace(/\D/g, "");
+    if (digits) phones.add(digits);
+  }
+  return [...phones].filter((d) => d.length >= 10).map((phone) => ({ name, phone }));
 }
 
 function at(momment?: number): Date {
@@ -127,6 +151,7 @@ export class ZapiInboundAdapter implements InboundAdapter {
         senderName: p.senderName ?? null,
         text: p.text?.message ?? caption,
         media: mediaList,
+        contacts: [...(p.contact ? [p.contact] : []), ...(p.contacts ?? [])].flatMap((c) => contactsFromCard(c)),
         occurredAt: at(p.momment),
       };
     }

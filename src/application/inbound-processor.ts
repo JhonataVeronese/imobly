@@ -1,6 +1,6 @@
 import type { ProviderAccount } from "@prisma/client";
 import { parseContactCommand } from "../domain/commands.js";
-import { phoneMatchKey } from "../domain/phone.js";
+import { phoneMatchKey, phoneVariants } from "../domain/phone.js";
 import type { InboundMessageEvent } from "../ports/inbound.js";
 import { grantConsent, isSuppressed, optOutByPhone } from "./consent-service.js";
 import { audit, type AppDeps } from "./deps.js";
@@ -9,18 +9,11 @@ import { applyStatusUpdate } from "./status-service.js";
 
 export class RetryLaterError extends Error {}
 
+export { phoneVariants };
+
 export interface InboundAttempt {
   attempt: number;
   maxAttempts: number;
-}
-
-/** Variações de um número BR com/sem o 9º dígito, para casar remetentes. */
-export function phoneVariants(digits: string): string[] {
-  const d = digits.replace(/\D/g, "");
-  const out = new Set([`+${d}`]);
-  if (d.startsWith("55") && d.length === 13 && d[4] === "9") out.add(`+${d.slice(0, 4)}${d.slice(5)}`);
-  if (d.startsWith("55") && d.length === 12 && /[6-9]/.test(d[4]!)) out.add(`+${d.slice(0, 4)}9${d.slice(4)}`);
-  return [...out];
 }
 
 /**
@@ -36,13 +29,16 @@ export async function processWebhookEvent(deps: AppDeps, webhookEventId: string,
   const adapter = deps.inbound[ev.provider];
   if (!adapter) return finish(deps, ev.id, "failed", "adapter_missing");
   const event = adapter.parse(ev.payload);
-  const account = await db.providerAccount.findFirst({
-    where: {
-      tenantId: ev.tenantId,
-      provider: ev.provider,
-      ...(event.accountReference ? { accountReference: event.accountReference } : {}),
-    },
-  });
+  // Conta gravada na entrada (token da URL) vale mais que o id da instância dentro do payload.
+  const account = ev.providerAccountId
+    ? await db.providerAccount.findFirst({ where: { id: ev.providerAccountId, tenantId: ev.tenantId } })
+    : await db.providerAccount.findFirst({
+        where: {
+          tenantId: ev.tenantId,
+          provider: ev.provider,
+          ...(event.accountReference ? { accountReference: event.accountReference } : {}),
+        },
+      });
   if (!account) return finish(deps, ev.id, "ignored", "account_missing");
 
   try {

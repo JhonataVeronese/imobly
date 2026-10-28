@@ -125,6 +125,8 @@ export function zapiMessage(
     from?: string;
     fromMe?: boolean;
     messageId?: string;
+    /** Cartões de contato ("Enviar contato"), no formato da Z-API. */
+    contacts?: { name: string; phone: string }[];
   },
 ) {
   const group = o.group ?? true;
@@ -141,7 +143,20 @@ export function zapiMessage(
     senderName: "Corretor",
     ...(o.text ? { text: { message: o.text } } : {}),
     ...(o.image ? { image: { imageUrl: o.image, mimeType: "image/png", caption: null } } : {}),
+    ...(o.contacts?.length === 1
+      ? { contact: vcardOf(o.contacts[0]!) }
+      : o.contacts?.length
+        ? { contacts: o.contacts.map(vcardOf) }
+        : {}),
     ...(o.document ? { document: { documentUrl: o.document.url, mimeType: "application/pdf", fileName: o.document.fileName ?? "ficha.pdf" } } : {}),
+  };
+}
+
+function vcardOf(c: { name: string; phone: string }) {
+  const d = c.phone.replace(/\D/g, "");
+  return {
+    displayName: c.name,
+    vCard: ["BEGIN:VCARD", "VERSION:3.0", `N:;${c.name};;;`, `FN:${c.name}`, `TEL;type=CELL;waid=${d}:+${d}`, "END:VCARD"].join("\n"),
   };
 }
 

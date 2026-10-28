@@ -41,7 +41,7 @@ O provedor **fake** responde como a Z-API (mesmo formato de webhook) e simula st
 ## Testes
 
 ```bash
-npm test                        # 71 testes (unitários + integração com Postgres real)
+npm test                        # 85 testes (unitários + integração com Postgres real)
 ```
 
 Os testes de integração usam o banco `imobzap_test`, criado pelo `docker compose`. Os 16 cenários obrigatórios da seção 14 da spec estão cobertos em `tests/integration/`: webhook duplicado e inválido, remetente não autorizado, evento fora do grupo, PDF inválido/indisponível, arquivo acima do limite, contato sem consentimento e descadastrado, confirmação dupla (inclusive concorrente), timeout do provedor, rate limit, worker interrompido, status fora de ordem, falha permanente, acesso cruzado entre tenants e revogação durante a campanha.
@@ -58,6 +58,19 @@ Os testes de integração usam o banco `imobzap_test`, criado pelo `docker compo
 | `AJUDA` | Lista os comandos |
 
 O passo a passo para quem usa só o WhatsApp está no painel em `/manual` (página pública, sem login).
+
+### Contatos compartilhados pelo corretor
+
+No rascunho, o corretor pode compartilhar cartões de contato ("Enviar contato", um ou vários). Cada contato é cadastrado (ou reaproveitado, casando com/sem o 9º dígito) e o público da campanha passa a ser **exatamente essa lista** (`audience.contactIds`, sem cruzar com o perfil do imóvel). O consentimento é **atestado pelo corretor** ao compartilhar: origem `corretor_whatsapp`, evidência `whatsapp:<messageId>` e o corretor como ator na auditoria (`campaign.contacts_shared`). Quem está na lista de supressão nunca entra, mesmo compartilhado de novo, e o resumo avisa. Ver [shared-contacts.ts](src/application/shared-contacts.ts).
+
+### Omni Z-API
+
+Provedor `omni` ([src/infra/omni/](src/infra/omni)), cadastrado pelo painel com **Channel ID + Secret Key** (menu Segurança da Omni; o token do canal não autentica a API nativa).
+
+- **Cadastro:** a API cria na Omni o webhook com `signing: true` e `payloadFormat: "Z_API"` (eventos `MESSAGE_RECEIVED` e `MESSAGE_STATUS`) apontando para `PUBLIC_BASE_URL/webhooks/omni/<token>`, e guarda Secret Key + segredo HMAC cifrados. Rotacionar o token atualiza a URL na Omni.
+- **Entrada:** assinatura `x-webhook-signature` verificada (HMAC-SHA256 sobre `t, topic, partition, offset, corpo`, janela de 5 min); corpo gzip aceito. O formato Z-API reaproveita o parser da Z-API; o formato padrão da Omni (`NEW_MESSAGE`) também é entendido para mensagens. O número que recebeu fica gravado em `webhook_events.provider_account_id`.
+- **Envio:** `POST /v1/channels/{id}/messages`. Imagem só por URL pública assinada (o adaptador pede link, não base64). **PDF:** o envio de `DOCUMENT` ainda está "em desenvolvimento" na Omni; até lá vai como texto com link válido por 30 dias ([omni-outbound.ts](src/infra/omni/omni-outbound.ts)).
+- **Limitações da Omni:** não há endpoint para listar os contatos do número, e consultar o canal exige o plano ENTERPRISE (desconexão é detectada pelo `422 CHANNEL_DISCONNECTED` no envio, que pausa a campanha). Canal WhatsApp Web: vale o ritmo seguro da fila. Canal Meta oficial: campanhas fora da janela de 24 h exigem template aprovado (ainda não implementado).
 
 ### Simulador WhatsApp (painel, `/simulador`)
 

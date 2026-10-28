@@ -38,6 +38,7 @@ const schema = z.object({
   SEND_WINDOW_END_HOUR: z.coerce.number().int().min(1).max(24).default(20),
   SEND_TIMEZONE: z.string().default("America/Sao_Paulo"),
   ZAPI_BASE_URL: z.string().url().default("https://api.z-api.io"),
+  OMNI_BASE_URL: z.string().url().default("https://api.omni.z-api.io"),
   PROVIDER_TIMEOUT_MS: z.coerce.number().default(15000),
   FAKE_AUTO_STATUS: bool,
   LOG_LEVEL: z.string().default("info"),

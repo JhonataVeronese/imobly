@@ -42,14 +42,14 @@ export default function LoginPage() {
             </div>
 
             {/* Peça principal da marca: preto com faixa amarela, chamada e conversa no celular. */}
-            <div className="imobly-hero-bg relative hidden w-full items-center gap-6 overflow-hidden p-10 xl:flex xl:w-[58%]">
+            <div className="auren-hero-bg relative hidden w-full items-center gap-6 overflow-hidden p-10 xl:flex xl:w-[58%]">
               <div className="relative z-1 min-w-0 flex-1">
                 <p className="font-display text-[34px] font-extrabold leading-[1.08] tracking-tight text-white">
-                  Seu próximo imóvel.
-                  <span className="block text-neon">Na conversa certa.</span>
+                  Sistemas inteligentes.
+                  <span className="block text-neon">Conversas que convertem.</span>
                 </p>
                 <p className="mt-5 text-white/75">
-                  Automatize a divulgação de imóveis e conecte suas oportunidades aos clientes certos.
+                  Automatize o atendimento e impulsione suas vendas com tecnologia inteligente para o mercado imobiliário.
                 </p>
                 <BrandPillars compact className="mt-8" />
               </div>

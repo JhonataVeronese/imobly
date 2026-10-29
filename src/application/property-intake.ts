@@ -253,7 +253,7 @@ export async function sendDraftSummary(deps: AppDeps, job: DraftSummaryJob): Pro
   const names = listed?.length && campaign.eligibleCount ? await listedContactNames(deps, tenantId, listed) : [];
   const audienceLine = listed?.length
     ? `👥 Público: *${campaign.eligibleCount} contato(s)* enviados por você${names.length ? `: ${names.join(", ")}${listed.length > names.length ? "…" : ""}` : ""}.`
-    : `👥 Público estimado: *${campaign.eligibleCount} contatos elegíveis*.`;
+    : `👥 Público estimado: *${campaign.eligibleCount} contatos elegíveis*.\n⚠️ Nenhum contato compartilhado: ao CONFIRMAR, envio para todos esses. Para escolher quem recebe, compartilhe os contatos (Enviar contato) antes de confirmar.`;
   await sendReply(
     deps,
     account,

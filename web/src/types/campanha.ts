@@ -72,6 +72,7 @@ export type CampaignDetail = CampaignListItem & {
   messageTemplate: string;
   confirmedAt: string | null;
   cancelledAt: string | null;
+  audience: { contactIds?: string[] } | null;
   property: {
     id: string;
     title: string | null;
@@ -109,10 +110,14 @@ export type EligibleContact = {
   id: string;
   name: string;
   phoneE164: string;
+  /** Preferências do contato batem com o imóvel (só informativo; a escolha é do corretor). */
+  matchesProperty: boolean;
 };
 
 export type EligibleContactsPage = {
   items: EligibleContact[];
   total: number;
   page: number;
+  /** Contatos já escolhidos para a campanha (vazio = público automático). */
+  selectedIds: string[];
 };

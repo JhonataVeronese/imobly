@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
@@ -5,14 +6,14 @@ import {
   cancelCampaign,
   confirmCampaign,
   createCampaign,
-  findEligibleContacts,
+  listSelectableContacts,
   parseAudience,
   pauseCampaign,
   refreshEstimate,
   resumeCampaign,
 } from "../../application/campaign-service.js";
 import type { AppDeps } from "../../application/deps.js";
-import { NotFoundError } from "../../domain/errors.js";
+import { DomainError, NotFoundError } from "../../domain/errors.js";
 import { MESSAGE_STATUSES } from "../../domain/message-status.js";
 import { requireAuth } from "../auth.js";
 
@@ -25,7 +26,7 @@ const createBody = z.object({
 });
 
 const updateAudienceBody = z.object({
-  audience: z.unknown().optional(),
+  contactIds: z.array(z.string().uuid()).max(5000),
 });
 
 export function registerCampaignRoutes(app: FastifyInstance, deps: AppDeps) {
@@ -56,50 +57,23 @@ export function registerCampaignRoutes(app: FastifyInstance, deps: AppDeps) {
     return { ...c, metrics: await campaignMetrics(deps.db, req.auth.tenantId, c.id) };
   });
 
-  app.get<{ Params: { id: string }; Querystring: { page?: string } }>("/campaigns/:id/eligible-contacts", auth, async (req) => {
-    const tenantId = req.auth.tenantId;
-    const c = await deps.db.campaign.findFirst({
-      where: { id: req.params.id, tenantId },
-      include: { property: true },
-    });
-    if (!c) throw new NotFoundError("Campanha");
-    if (!c.property) throw new NotFoundError("Imóvel");
+  app.get<{ Params: { id: string }; Querystring: { page?: string; q?: string } }>("/campaigns/:id/eligible-contacts", auth, async (req) =>
+    listSelectableContacts(deps, req.auth.tenantId, req.params.id, Math.max(1, Number(req.query.page ?? 1) || 1), req.query.q),
+  );
 
-    const eligible = await findEligibleContacts(deps.db, tenantId, parseAudience(c.audience), c.property);
-    const page = Math.max(1, Number(req.query.page ?? 1));
-    const start = (page - 1) * 50;
-    const items = eligible.slice(start, start + 50);
-
-    return {
-      items: await deps.db.contact.findMany({
-        where: { id: { in: items.map(c => c.id) }, tenantId },
-        select: { id: true, name: true, phoneE164: true },
-      }),
-      total: eligible.length,
-      page,
-    };
-  });
-
+  // Seleção manual do público: lista vazia volta ao público automático do imóvel.
   app.patch<{ Params: { id: string } }>("/campaigns/:id", auth, async (req) => {
     const tenantId = req.auth.tenantId;
-    const b = updateAudienceBody.parse(req.body);
+    const { contactIds } = updateAudienceBody.parse(req.body);
     const c = await deps.db.campaign.findFirst({ where: { id: req.params.id, tenantId } });
     if (!c) throw new NotFoundError("Campanha");
     if (c.status !== "awaiting_confirmation" && c.status !== "draft") {
-      throw new NotFoundError("Campanha");
+      throw new DomainError("invalid_transition", "O público só pode ser alterado antes da confirmação", 409);
     }
-
-    const updateData: Record<string, unknown> = {};
-    if (b.audience !== undefined) {
-      updateData.audience = b.audience;
-    }
-    const updated = await deps.db.campaign.update({
-      where: { id: req.params.id },
-      data: updateData as any,
-    });
-
-    await refreshEstimate(deps, tenantId, req.params.id);
-    return updated;
+    const { contactIds: _previous, ...rest } = parseAudience(c.audience);
+    const audience = contactIds.length ? { ...rest, contactIds } : rest;
+    await deps.db.campaign.update({ where: { id: c.id }, data: { audience: audience as Prisma.InputJsonValue } });
+    return refreshEstimate(deps, tenantId, c.id);
   });
 
   app.post<{ Params: { id: string } }>("/campaigns/:id/confirm", auth, async (req) => confirmCampaign(deps, req.auth.tenantId, req.params.id, actor(req)));

@@ -85,7 +85,7 @@ export function SimuladorClient() {
   const contact = state?.contacts.find((c) => c.id === selected) ?? null;
   const agentEntries = useMemo(() => entries.filter((e) => e.chat === state?.agentPhone), [entries, state?.agentPhone]);
   const contactEntries = useMemo(() => entries.filter((e) => contact && e.chat === contact.phone), [entries, contact]);
-  /** Quantas mensagens o imobly já mandou para cada cliente. */
+  /** Quantas mensagens a Auren já mandou para cada cliente. */
   const received = useMemo(() => {
     const out: Record<string, number> = {};
     for (const e of entries) if (e.direction === "out" && e.chat !== state?.agentPhone) out[e.chat] = (out[e.chat] ?? 0) + 1;
@@ -168,7 +168,7 @@ function AgentPhone({ entries, statuses }: { entries: SimulatorEntry[]; statuses
 
   return (
     <Phone
-      title="imobly"
+      title="Auren"
       subtitle="você é o corretor"
       hint="Converse com o bot como no WhatsApp: mande o anúncio, fotos e PDF, depois os comandos."
       entries={entries}
@@ -540,7 +540,7 @@ function ContactsCard({
               <span className="flex items-center justify-between gap-2">
                 <span className="truncate text-sm font-bold text-dark dark:text-white">{c.name}</span>
                 {received[c.phone] ? (
-                  <span title="Mensagens recebidas do imobly" className="rounded-full bg-[#00A884] px-1.5 text-[10px] font-bold text-white">
+                  <span title="Mensagens recebidas da Auren" className="rounded-full bg-[#00A884] px-1.5 text-[10px] font-bold text-white">
                     {received[c.phone]}
                   </span>
                 ) : null}

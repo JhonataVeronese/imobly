@@ -1,151 +1,183 @@
 "use client";
 
+import { FormFeedback } from "@/components/cadastros/form-feedback";
 import { ListCard } from "@/components/cadastros/list-card";
+import { getEligibleContacts, updateCampaignContacts } from "@/services/campanhas.service";
 import type { CampaignDetail, EligibleContact } from "@/types/campanha";
-import { getEligibleContacts, updateCampaignAudience } from "@/services/campanhas.service";
 import { useCallback, useEffect, useState } from "react";
 
-interface ContatosSelectorProps {
+const PAGE_SIZE = 50;
+
+type Props = {
   campaign: CampaignDetail;
-  onUpdate?: (contactIds: string[]) => void;
-  disabled?: boolean;
-}
+  onSaved: () => Promise<void> | void;
+};
 
-export function CampanhaContatosSelector({ campaign, onUpdate, disabled = false }: ContatosSelectorProps) {
-  const [page, setPage] = useState(1);
-  const [eligibleContacts, setEligibleContacts] = useState<EligibleContact[]>([]);
+export function CampanhaContatosSelector({ campaign, onSaved }: Props) {
+  const [items, setItems] = useState<EligibleContact[]>([]);
   const [total, setTotal] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "error"; text: string } | null>(null);
 
-  // Carrega contatos elegíveis da API
-  const loadContacts = useCallback(async (pageNum: number) => {
-    setLoading(true);
-    try {
-      const data = await getEligibleContacts(campaign.id, pageNum);
-      setEligibleContacts(data.items);
-      setTotal(data.total);
-      setPage(pageNum);
-    } catch (err) {
-      console.error("Erro ao carregar contatos:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [campaign.id]);
+  const load = useCallback(
+    async (p: number, q: string) => {
+      setLoading(true);
+      try {
+        const data = await getEligibleContacts(campaign.id, p, q);
+        setItems(data.items);
+        setTotal(data.total);
+        setPage(p);
+        // A seleção salva só é carregada uma vez; depois o estado local manda.
+        setSelected((cur) => cur ?? new Set(data.selectedIds));
+      } catch (e) {
+        setFeedback({ variant: "error", text: e instanceof Error ? e.message : "Não foi possível carregar os contatos." });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [campaign.id],
+  );
 
   useEffect(() => {
-    loadContacts(1);
-  }, [loadContacts]);
+    void load(1, search);
+  }, [load, search]);
 
-  const toggleContact = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
+  const chosen = selected ?? new Set<string>();
+  const toggle = (id: string) => {
+    const next = new Set(chosen);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
+  const pageAllChosen = items.length > 0 && items.every((c) => chosen.has(c.id));
+  const togglePage = () => {
+    const next = new Set(chosen);
+    for (const c of items) {
+      if (pageAllChosen) next.delete(c.id);
+      else next.add(c.id);
     }
-    setSelectedIds(newSelected);
+    setSelected(next);
   };
 
-  const toggleAll = (select: boolean) => {
-    if (select) {
-      setSelectedIds(new Set(eligibleContacts.map((c) => c.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSave = async () => {
+  const save = async (ids: string[]) => {
+    setSaving(true);
+    setFeedback(null);
     try {
-      setLoading(true);
-      const audience = {
-        contactIds: Array.from(selectedIds),
-      };
-      await updateCampaignAudience(campaign.id, audience);
-      onUpdate?.(Array.from(selectedIds));
-    } catch (err) {
-      console.error("Erro ao atualizar campanha:", err);
+      await updateCampaignContacts(campaign.id, ids);
+      if (ids.length === 0) setSelected(new Set());
+      setFeedback({
+        variant: "success",
+        text: ids.length
+          ? `Seleção salva: só ${ids.length} contato(s) vão receber esta campanha.`
+          : "Seleção limpa: a campanha volta a ir para todos os contatos elegíveis.",
+      });
+      await onSaved();
+    } catch (e) {
+      setFeedback({ variant: "error", text: e instanceof Error ? e.message : "Não foi possível salvar a seleção." });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const allSelected = eligibleContacts.length > 0 && eligibleContacts.every((c) => selectedIds.has(c.id));
-  const someSelected = eligibleContacts.some((c) => selectedIds.has(c.id));
+  const busy = loading || saving;
 
   return (
-    <ListCard title="Seleção de Contatos">
+    <ListCard title="Quem recebe esta campanha">
       <div className="space-y-4">
-        <p className="text-body-sm text-dark-6">
-          {total} contato(s) elegível(is) · {selectedIds.size} selecionado(s)
+        <p className="text-body-sm text-dark-5 dark:text-dark-6">
+          Marque os contatos que devem receber este imóvel. Aparecem só contatos ativos, com consentimento e que não pediram
+          para sair. <strong className="text-dark dark:text-white">Sem nenhum marcado, a campanha vai para todos os contatos elegíveis.</strong>
         </p>
 
-        {total === 0 ? (
-          <p className="text-body-sm text-dark-4">Nenhum contato com consentimento disponível.</p>
-        ) : (
-          <>
-            <div className="mb-4 flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="select-all"
-                checked={allSelected || someSelected}
-                onChange={(e) => toggleAll(e.target.checked)}
-                disabled={disabled || loading}
-                className="h-4 w-4"
-              />
-              <label htmlFor="select-all" className="text-body-sm font-medium cursor-pointer">
-                Selecionar {allSelected ? "nenhum" : "tudo"}
-              </label>
-            </div>
+        {feedback && <FormFeedback variant={feedback.variant}>{feedback.text}</FormFeedback>}
 
-            <div className="max-h-96 space-y-2 overflow-y-auto rounded-lg border border-gray-3 p-4 dark:border-dark-3">
-              {eligibleContacts.map((contact) => (
-                <div key={contact.id} className="flex items-center gap-3 py-2">
-                  <input
-                    type="checkbox"
-                    id={contact.id}
-                    checked={selectedIds.has(contact.id)}
-                    onChange={() => toggleContact(contact.id)}
-                    disabled={disabled || loading}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor={contact.id} className="flex-1 cursor-pointer">
-                    <div className="text-body-sm font-medium">{contact.name}</div>
-                    <div className="text-body-xs text-dark-6">{contact.phoneE164}</div>
-                  </label>
-                </div>
-              ))}
-            </div>
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSearch(query);
+          }}
+        >
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome ou telefone"
+            className="min-w-0 flex-1 rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm outline-none focus:border-primary dark:border-dark-3"
+          />
+          <button type="submit" className="rounded-lg border border-stroke px-4 py-2.5 text-sm font-medium dark:border-dark-3">
+            Buscar
+          </button>
+        </form>
 
-            {total > 50 && (
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => loadContacts(Math.max(1, page - 1))}
-                  disabled={page === 1 || loading}
-                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                >
-                  ← Anterior
-                </button>
-                <span className="px-3 py-1 text-sm">{page}</span>
-                <button
-                  onClick={() => loadContacts(page + 1)}
-                  disabled={page * 50 >= total || loading}
-                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                >
-                  Próxima →
-                </button>
-              </div>
-            )}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={pageAllChosen} onChange={togglePage} disabled={busy || items.length === 0} className="size-4" />
+            Marcar todos desta página
+          </label>
+          <span className="text-dark-6">
+            {chosen.size} selecionado(s) · {total} disponível(is)
+          </span>
+        </div>
 
-            <button
-              onClick={handleSave}
-              disabled={disabled || loading}
-              className="w-full rounded-lg bg-primary px-4 py-2 text-white font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? "Salvando..." : "Salvar Seleção"}
+        <div className="max-h-96 divide-y divide-stroke overflow-y-auto rounded-lg border border-stroke dark:divide-dark-3 dark:border-dark-3">
+          {items.length === 0 && (
+            <p className="p-4 text-body-sm text-dark-6">
+              {loading ? "Carregando…" : search ? "Nenhum contato encontrado." : "Nenhum contato com consentimento disponível."}
+            </p>
+          )}
+          {items.map((c) => (
+            <label key={c.id} className="flex cursor-pointer items-center gap-3 px-4 py-3">
+              <input type="checkbox" checked={chosen.has(c.id)} onChange={() => toggle(c.id)} disabled={busy} className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-body-sm font-medium text-dark dark:text-white">{c.name}</span>
+                <span className="block text-body-xs text-dark-6">{c.phoneE164}</span>
+              </span>
+              {c.matchesProperty && (
+                <span className="shrink-0 rounded-full bg-neon/15 px-2.5 py-1 text-[11px] font-semibold text-dark dark:text-neon">
+                  Perfil compatível
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-3 text-sm">
+            <button type="button" onClick={() => void load(page - 1, search)} disabled={page === 1 || busy} className="disabled:opacity-40">
+              ← Anterior
             </button>
-          </>
+            <span>
+              {page} de {Math.ceil(total / PAGE_SIZE)}
+            </span>
+            <button type="button" onClick={() => void load(page + 1, search)} disabled={page * PAGE_SIZE >= total || busy} className="disabled:opacity-40">
+              Próxima →
+            </button>
+          </div>
         )}
+
+        <div className="flex flex-wrap justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => void save([])}
+            disabled={busy || chosen.size === 0}
+            className="rounded-lg border border-stroke px-4 py-2.5 text-sm font-medium disabled:opacity-40 dark:border-dark-3"
+          >
+            Limpar seleção
+          </button>
+          <button
+            type="button"
+            onClick={() => void save([...chosen])}
+            disabled={busy || chosen.size === 0}
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-40"
+          >
+            {saving ? "Salvando…" : `Salvar seleção (${chosen.size})`}
+          </button>
+        </div>
       </div>
     </ListCard>
   );

@@ -18,7 +18,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* Tipografia da marca imobly: Montserrat. */}
+        {/* Tipografia da marca Auren: Montserrat. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

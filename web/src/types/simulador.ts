@@ -3,7 +3,7 @@ import type { MessageStatus } from "./campanha";
 export interface SimulatorEntry {
   seq: number;
   at: string;
-  /** in = chegou ao imobly; out = o imobly enviou. */
+  /** in = chegou à Auren; out = a Auren enviou. */
   direction: "in" | "out";
   /** Telefone (só dígitos) do outro lado da conversa. */
   chat: string;

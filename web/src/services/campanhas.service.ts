@@ -35,10 +35,13 @@ export function listRecipients(id: string, status: MessageStatus | null, page: n
   return bffRequest<RecipientsPage>(`${campaignUrl(id)}/recipients?${qs.toString()}`);
 }
 
-export function getEligibleContacts(id: string, page: number = 1): Promise<EligibleContactsPage> {
-  return bffRequest<EligibleContactsPage>(`${campaignUrl(id)}/eligible-contacts?page=${page}`);
+export function getEligibleContacts(id: string, page = 1, q = ""): Promise<EligibleContactsPage> {
+  const qs = new URLSearchParams({ page: String(page) });
+  if (q.trim()) qs.set("q", q.trim());
+  return bffRequest<EligibleContactsPage>(`${campaignUrl(id)}/eligible-contacts?${qs.toString()}`);
 }
 
-export function updateCampaignAudience(id: string, audience: unknown): Promise<CampaignDetail> {
-  return bffRequest<CampaignDetail>(campaignUrl(id), jsonInit("PATCH", { audience }));
+/** Lista vazia limpa a seleção: a campanha volta ao público automático do imóvel. */
+export function updateCampaignContacts(id: string, contactIds: string[]): Promise<CampaignDetail> {
+  return bffRequest<CampaignDetail>(campaignUrl(id), jsonInit("PATCH", { contactIds }));
 }

@@ -91,7 +91,7 @@ export default function ManualPage() {
       </header>
 
       {/* Abertura no estilo da peça principal da marca. */}
-      <section className="imobly-hero-bg">
+      <section className="auren-hero-bg">
         <div className="mx-auto grid max-w-screen-xl grid-cols-1 items-center gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1fr_auto]">
           <div className="min-w-0 max-w-[620px]">
             <span className="rotulo text-neon">Manual de uso · WhatsApp</span>
@@ -100,7 +100,7 @@ export default function ManualPage() {
               <span className="block text-neon">Sem abrir o painel.</span>
             </h1>
             <p className="mt-5 text-lg text-white/75">
-              Você manda o imóvel numa conversa, confere o resumo e responde <Cmd>CONFIRMAR</Cmd>. O imobly envia para os
+              Você manda o imóvel numa conversa, confere o resumo e responde <Cmd>CONFIRMAR</Cmd>. A Auren envia para os
               clientes certos, em fila e no ritmo seguro para o seu número.
             </p>
             <BrandPillars className="mt-8" />
@@ -182,7 +182,7 @@ export default function ManualPage() {
               </Step>
               <Step n={3} title="Opcional: escolha quem recebe">
                 Compartilhe os contatos dos clientes (no WhatsApp: <strong>clipe → Contato</strong>, um ou vários). Eles são
-                cadastrados na hora e a campanha vai <strong>só para eles</strong>. Sem compartilhar contatos, o imobly escolhe na
+                cadastrados na hora e a campanha vai <strong>só para eles</strong>. Sem compartilhar contatos, a Auren escolhe na
                 carteira quem combina com o imóvel. Ao compartilhar, você confirma que esses clientes autorizaram receber ofertas;
                 quem já pediu para sair nunca recebe.
               </Step>
@@ -251,7 +251,7 @@ export default function ManualPage() {
 
           <Section id="anuncio" n={4} title="Como escrever o anúncio">
             <p>
-              O imobly lê o texto e separa os dados do imóvel. Ele <strong>não inventa nada</strong>: o que não estiver
+              A Auren lê o texto e separa os dados do imóvel. Ele <strong>não inventa nada</strong>: o que não estiver
               escrito fica em branco e aparece no resumo como &quot;Não informado&quot;.
             </p>
             <div className="grid gap-6 md:grid-cols-2">
@@ -281,7 +281,7 @@ Aceita financiamento.`}
               </ul>
             </div>
             <Callout>
-              Quanto mais completo o texto, mais certeiro o público: o imobly cruza tipo, bairro, valor e quartos com o
+              Quanto mais completo o texto, mais certeiro o público: a Auren cruza tipo, bairro, valor e quartos com o
               perfil de cada cliente para decidir quem recebe.
             </Callout>
           </Section>
@@ -298,7 +298,7 @@ Aceita financiamento.`}
             </p>
             <p>
               Arquivo em outro formato, corrompido ou grande demais é recusado com um aviso (&quot;⚠️ Arquivo(s)
-              rejeitado(s)&quot;) e o resto do imóvel continua valendo. Mandou só fotos? O imobly avisa: &quot;Envie também o
+              rejeitado(s)&quot;) e o resto do imóvel continua valendo. Mandou só fotos? A Auren avisa: &quot;Envie também o
               texto do imóvel&quot;.
             </p>
           </Section>
@@ -329,7 +329,7 @@ Aceita financiamento.`}
                 envio retoma de onde parou, e quem já recebeu não recebe de novo.
               </li>
               <li>
-                <strong className="text-dark dark:text-white">Respeito ao cliente.</strong> Antes de cada envio, o imobly
+                <strong className="text-dark dark:text-white">Respeito ao cliente.</strong> Antes de cada envio, a Auren
                 confere de novo se o cliente continua autorizando. Quem pediu para sair no meio da campanha não recebe.
               </li>
             </ul>
@@ -399,7 +399,7 @@ Para não receber mais ofertas, responda SAIR.`}
           </Section>
 
           <Section id="pausas" n={9} title="Pausas automáticas">
-            <p>Para proteger o número e a sua base, o imobly pausa a campanha sozinho quando:</p>
+            <p>Para proteger o número e a sua base, a Auren pausa a campanha sozinho quando:</p>
             <ul className="space-y-3">
               <li className="rounded-xl border-l-4 border-neon bg-white p-4 dark:bg-ink-3">
                 <strong className="text-dark dark:text-white">O número desconectou ou foi restringido.</strong> Peça ao

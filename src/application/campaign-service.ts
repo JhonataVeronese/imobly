@@ -1,5 +1,12 @@
 import type { Campaign, PrismaClient, Property } from "@prisma/client";
-import { audienceSchema, matchesAudience, parsePreferences, type Audience, type PropertyProfile } from "../domain/audience.js";
+import {
+  audienceSchema,
+  isCompatibleWithProperty,
+  matchesAudience,
+  parsePreferences,
+  type Audience,
+  type PropertyProfile,
+} from "../domain/audience.js";
 import { allowedSources, CAMPAIGN_STATUS_LABEL, type CampaignStatus } from "../domain/campaign.js";
 import { DomainError, NotFoundError } from "../domain/errors.js";
 import { estimateDurationMs, formatDuration, SIMULATOR_PACING } from "../domain/send-pacing.js";
@@ -39,7 +46,8 @@ export async function findEligibleContacts(
     where: {
       ...eligibleContactWhere(tenantId),
       ...sandboxContactFilter(sandbox),
-      ...(audience.contactIds ? { id: { in: audience.contactIds } } : {}),
+      // Lista vazia = sem seleção manual: vale o público do imóvel, não "ninguém".
+      ...(audience.contactIds?.length ? { id: { in: audience.contactIds } } : {}),
     },
     select: { id: true, phoneE164: true, preferences: true, tags: true },
   });
@@ -129,6 +137,40 @@ export async function refreshEstimate(deps: AppDeps, tenantId: string, campaignI
   return deps.db.campaign.update({ where: { id: c.id }, data: { eligibleCount: eligible.length, name } });
 }
 
+/**
+ * Contatos que o corretor pode escolher no painel: ativos, com consentimento e fora da supressão,
+ * sem o filtro de preferências (a escolha manual é dele). `matchesProperty` só informa o perfil.
+ */
+export async function listSelectableContacts(deps: AppDeps, tenantId: string, campaignId: string, page: number, q?: string) {
+  const c = await getCampaign(deps.db, tenantId, campaignId);
+  const property = await deps.db.property.findFirstOrThrow({ where: { id: c.propertyId, tenantId } });
+  const sandbox = await isSandboxAccount(deps.db, tenantId, c.providerAccountId);
+  const suppressed = new Set(
+    (await deps.db.suppressionEntry.findMany({ where: { tenantId }, select: { phoneE164: true } })).map((s) => s.phoneE164),
+  );
+  const search = q?.trim();
+  const contacts = await deps.db.contact.findMany({
+    where: {
+      ...eligibleContactWhere(tenantId),
+      ...sandboxContactFilter(sandbox),
+      ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" as const } }, { phoneE164: { contains: search.replace(/\D/g, "") || search } }] } : {}),
+    },
+    select: { id: true, name: true, phoneE164: true, preferences: true },
+    orderBy: { name: "asc" },
+  });
+  const profile = propertyProfile(property);
+  const all = contacts
+    .filter((x) => !suppressed.has(x.phoneE164))
+    .map((x) => ({ id: x.id, name: x.name, phoneE164: x.phoneE164, matchesProperty: isCompatibleWithProperty(parsePreferences(x.preferences), profile) }));
+  const size = 50;
+  return {
+    items: all.slice((page - 1) * size, page * size),
+    total: all.length,
+    page,
+    selectedIds: parseAudience(c.audience).contactIds ?? [],
+  };
+}
+
 export interface ConfirmResult {
   campaign: Campaign;
   alreadyConfirmed: boolean;
@@ -165,11 +207,9 @@ export async function confirmCampaign(deps: AppDeps, tenantId: string, campaignI
   const sandbox = await isSandboxAccount(deps.db, tenantId, current.providerAccountId);
   const audience = parseAudience(current.audience);
 
-  // Se contactIds foi especificado (seleção manual), usa apenas esses. Senão, usa todos os elegíveis.
-  let warning: string | undefined;
-  if (audience.contactIds !== undefined && audience.contactIds.length === 0) {
-    warning = "Nenhum contato foi selecionado. A campanha será enviada para todos os contatos com consentimento.";
-  }
+  const warning = audience.contactIds?.length
+    ? undefined
+    : "Nenhum contato foi selecionado: a campanha foi enviada para todos os contatos elegíveis.";
 
   const result = await deps.db.$transaction(async (tx) => {
     const won = await transition(tx, tenantId, campaignId, "processing", {

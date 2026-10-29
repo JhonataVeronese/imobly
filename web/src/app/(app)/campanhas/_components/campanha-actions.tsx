@@ -8,6 +8,8 @@ import { useState } from "react";
 type Props = {
   status: CampaignStatus;
   eligibleCount: number;
+  /** Corretor escolheu os contatos? Sem escolha, a campanha vai para todos os elegíveis. */
+  manualSelection: boolean;
   busy: boolean;
   onAction: (action: CampaignAction) => Promise<void>;
 };
@@ -15,7 +17,7 @@ type Props = {
 const CANCELLABLE: readonly CampaignStatus[] = ["draft", "awaiting_confirmation", "scheduled", "processing", "paused"];
 
 /** Ações permitidas pelo estado atual (a API valida as mesmas transições). */
-export function CampanhaActions({ status, eligibleCount, busy, onAction }: Props) {
+export function CampanhaActions({ status, eligibleCount, manualSelection, busy, onAction }: Props) {
   const [dialog, setDialog] = useState<"confirm" | "cancel" | null>(null);
 
   return (
@@ -47,7 +49,11 @@ export function CampanhaActions({ status, eligibleCount, busy, onAction }: Props
         open={dialog === "confirm"}
         onOpenChange={(open) => !open && setDialog(null)}
         title={`Iniciar o envio para ${eligibleCount} contatos?`}
-        description="O público é recalculado no momento da confirmação: só recebem contatos com consentimento vigente e fora da lista de descadastro."
+        description={
+          manualSelection
+            ? "Só os contatos que você selecionou recebem. O público é revalidado na confirmação: quem perdeu o consentimento ou pediu para sair fica de fora."
+            : `⚠️ Nenhum contato foi selecionado: a campanha vai para TODOS os ${eligibleCount} contatos elegíveis. Para escolher quem recebe, cancele e use "Quem recebe esta campanha".`
+        }
         confirmLabel="Iniciar envio"
         onConfirm={() => onAction("confirm")}
       />

@@ -4,7 +4,7 @@
 
 @layer base {
   /* Cor de destaque por tema (canais RGB para suportar opacidade do Tailwind, ex.: bg-primary/10).
-     Claro: preto com texto amarelo. Escuro: amarelo com texto preto — o par da marca imobly. */
+     Claro: preto com texto amarelo. Escuro: amarelo com texto preto — o par da marca Auren. */
   :root {
     --color-primary: 11 11 11;
     --color-primary-foreground: 255 214 0;

@@ -11,7 +11,6 @@ import { useCallback, useEffect, useState } from "react";
 import { CampanhaActions } from "./campanha-actions";
 import { CampanhaRecipientsClient } from "./campanha-recipients-client";
 import { CampanhaContatosSelector } from "./campanha-contatos-selector";
-import { CampanhaConfirmDialog } from "./campanha-confirm-dialog";
 
 const LIVE_STATUSES = new Set(["processing", "awaiting_confirmation"]);
 const POLL_MS = 4000;
@@ -32,9 +31,6 @@ export function CampanhaDetailClient({ initial }: { initial: CampaignDetail }) {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ variant: "success" | "error"; text: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<CampaignAction | null>(null);
-  const [confirmWarning, setConfirmWarning] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setCampaign(await getCampaign(initial.id));
@@ -48,27 +44,11 @@ export function CampanhaDetailClient({ initial }: { initial: CampaignDetail }) {
   }, [campaign.status, reload]);
 
   const handleAction = async (action: CampaignAction) => {
-    if (action === "confirm") {
-      // Para confirmação, mostra o diálogo primeiro
-      setPendingAction(action);
-      setConfirmDialogOpen(true);
-      setConfirmWarning(null);
-      return;
-    }
-
-    // Outras ações executam diretamente
-    await executeAction(action);
-  };
-
-  const executeAction = async (action: CampaignAction) => {
     setBusy(true);
     setFeedback(null);
     try {
       const result = await runCampaignAction(campaign.id, action);
       const already = isConfirmResult(result) && result.alreadyConfirmed;
-      if (isConfirmResult(result) && result.warning) {
-        setConfirmWarning(result.warning);
-      }
       setFeedback({ variant: "success", text: already ? "Esta campanha já estava confirmada." : ACTION_DONE[action] });
       await reload();
     } catch (e) {
@@ -77,14 +57,6 @@ export function CampanhaDetailClient({ initial }: { initial: CampaignDetail }) {
       if (action === "confirm" || action === "cancel") throw e;
     } finally {
       setBusy(false);
-    }
-  };
-
-  const handleConfirmDialogConfirm = async () => {
-    if (pendingAction) {
-      setConfirmDialogOpen(false);
-      await executeAction(pendingAction);
-      setPendingAction(null);
     }
   };
 
@@ -130,7 +102,13 @@ export function CampanhaDetailClient({ initial }: { initial: CampaignDetail }) {
               {formatDateTime(campaign.completedAt)}
             </p>
           </div>
-          <CampanhaActions status={campaign.status} eligibleCount={campaign.eligibleCount} busy={busy} onAction={handleAction} />
+          <CampanhaActions
+            status={campaign.status}
+            eligibleCount={campaign.eligibleCount}
+            manualSelection={Boolean(campaign.audience?.contactIds?.length)}
+            busy={busy}
+            onAction={handleAction}
+          />
         </div>
 
         <dl className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
@@ -148,27 +126,15 @@ export function CampanhaDetailClient({ initial }: { initial: CampaignDetail }) {
         </p>
       </ListCard>
 
+      {campaign.status === "awaiting_confirmation" && <CampanhaContatosSelector campaign={campaign} onSaved={reload} />}
+
       <ListCard title="Mensagem">
         <pre className="whitespace-pre-wrap rounded-lg bg-gray-2 p-4 font-sans text-body-sm text-dark dark:bg-dark-2 dark:text-white">
           {campaign.messageTemplate}
         </pre>
       </ListCard>
 
-      {campaign.status === "awaiting_confirmation" && <CampanhaContatosSelector campaign={campaign} onUpdate={reload} />}
-
       <CampanhaRecipientsClient campaignId={campaign.id} refreshKey={refreshKey} />
-
-      <CampanhaConfirmDialog
-        campaign={campaign}
-        warning={confirmWarning}
-        isOpen={confirmDialogOpen}
-        onConfirm={handleConfirmDialogConfirm}
-        onCancel={() => {
-          setConfirmDialogOpen(false);
-          setPendingAction(null);
-          setConfirmWarning(null);
-        }}
-      />
     </div>
   );
 }

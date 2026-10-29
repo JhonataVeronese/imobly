@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { audit, isUniqueViolation, type AppDeps } from "../../application/deps.js";
-import { DomainError } from "../../domain/errors.js";
+import { DomainError, NotFoundError } from "../../domain/errors.js";
 import { normalizePhoneE164 } from "../../domain/phone.js";
 import { hashPassword, requireAuth, requireRole, verifyPassword } from "../auth.js";
 
@@ -22,7 +22,13 @@ const userBody = z.object({
   phone: z.string().optional(),
 });
 
-function phoneOrThrow(raw?: string) {
+const userUpdateBody = z.object({
+  name: z.string().trim().min(2).optional(),
+  /** Vazio ou null remove o WhatsApp: o usuário deixa de ser remetente autorizado. */
+  phone: z.string().nullable().optional(),
+});
+
+function phoneOrThrow(raw?: string | null) {
   if (!raw) return null;
   const p = normalizePhoneE164(raw);
   if (!p) throw new DomainError("invalid_phone", "Telefone inválido");
@@ -93,6 +99,29 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps) {
       return reply.status(201).send(user);
     } catch (err) {
       if (isUniqueViolation(err)) throw new DomainError("conflict", "E-mail ou telefone já cadastrado", 409);
+      throw err;
+    }
+  });
+
+  app.patch<{ Params: { id: string } }>("/users/:id", { preHandler: [requireAuth, requireRole("owner", "admin")] }, async (req) => {
+    const b = userUpdateBody.parse(req.body);
+    const tenantId = req.auth.tenantId;
+    const current = await deps.db.user.findFirst({ where: { id: req.params.id, tenantId }, select: { id: true, phoneE164: true } });
+    if (!current) throw new NotFoundError("Usuário");
+    const phone = b.phone === undefined ? undefined : phoneOrThrow(b.phone?.trim() || null);
+    try {
+      const user = await deps.db.user.update({
+        where: { id: current.id },
+        data: { ...(b.name ? { name: b.name } : {}), ...(phone !== undefined ? { phoneE164: phone } : {}) },
+        select: { id: true, name: true, email: true, role: true, phoneE164: true, status: true },
+      });
+      await audit(deps.db, tenantId, { type: "user", id: req.auth.userId }, "user.updated", "user", user.id, {
+        name: b.name ? true : undefined,
+        phoneChanged: phone !== undefined && phone !== current.phoneE164,
+      });
+      return user;
+    } catch (err) {
+      if (isUniqueViolation(err)) throw new DomainError("conflict", "Este WhatsApp já está cadastrado em outro usuário", 409);
       throw err;
     }
   });

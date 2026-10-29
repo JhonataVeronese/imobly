@@ -9,6 +9,7 @@ import { formatPhone } from "@/lib/format";
 import { fetchSaasList } from "@/lib/server/saas-list";
 import { ROLE_LABEL, type UserListItem } from "@/types/configuracao";
 import type { Metadata } from "next";
+import { UsuarioEditButton } from "./_components/usuario-edit-button";
 import { UsuarioForm } from "./_components/usuario-form";
 
 export const metadata: Metadata = { title: "Usuários" };
@@ -31,7 +32,8 @@ export default async function UsuariosPage() {
                   <TableHead>E-mail</TableHead>
                   <TableHead>WhatsApp autorizado</TableHead>
                   <TableHead>Perfil</TableHead>
-                  <TableHead className="xl:pr-7.5">Status</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right xl:pr-7.5">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -41,8 +43,11 @@ export default async function UsuariosPage() {
                     <TableCell className="text-body-sm text-dark dark:text-white">{u.email}</TableCell>
                     <TableCell className="text-body-sm text-dark dark:text-white">{u.phoneE164 ? formatPhone(u.phoneE164) : "—"}</TableCell>
                     <TableCell className="text-body-sm text-dark dark:text-white">{ROLE_LABEL[u.role]}</TableCell>
-                    <TableCell className="xl:pr-7.5">
+                    <TableCell>
                       <StatusBadge status={u.status} />
+                    </TableCell>
+                    <TableCell className="text-right xl:pr-7.5">
+                      <UsuarioEditButton user={u} />
                     </TableCell>
                   </TableRow>
                 ))}

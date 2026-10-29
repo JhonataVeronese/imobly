@@ -21,3 +21,8 @@ export function rotateWebhook(accountId: string): Promise<{ webhookUrl: string }
 export function createUser(payload: UserCreatePayload): Promise<UserListItem> {
   return bffRequest<UserListItem>(NEXT_PROXY.users, jsonInit("POST", payload));
 }
+
+/** `phone: null` remove o WhatsApp (o usuário deixa de poder enviar imóveis pelo canal de entrada). */
+export function updateUser(id: string, payload: { name: string; phone: string | null }): Promise<UserListItem> {
+  return bffRequest<UserListItem>(`${NEXT_PROXY.users}/${encodeURIComponent(id)}`, jsonInit("PATCH", payload));
+}

@@ -133,6 +133,7 @@ export interface ConfirmResult {
   campaign: Campaign;
   alreadyConfirmed: boolean;
   recipients: number;
+  warning?: string;
 }
 
 /**
@@ -162,6 +163,14 @@ export async function confirmCampaign(deps: AppDeps, tenantId: string, campaignI
   }
 
   const sandbox = await isSandboxAccount(deps.db, tenantId, current.providerAccountId);
+  const audience = parseAudience(current.audience);
+
+  // Se contactIds foi especificado (seleção manual), usa apenas esses. Senão, usa todos os elegíveis.
+  let warning: string | undefined;
+  if (audience.contactIds !== undefined && audience.contactIds.length === 0) {
+    warning = "Nenhum contato foi selecionado. A campanha será enviada para todos os contatos com consentimento.";
+  }
+
   const result = await deps.db.$transaction(async (tx) => {
     const won = await transition(tx, tenantId, campaignId, "processing", {
       confirmedAt: now,
@@ -171,7 +180,7 @@ export async function confirmCampaign(deps: AppDeps, tenantId: string, campaignI
     if (!won) return null; // outra confirmação concorrente venceu
 
     // Público é congelado no momento da confirmação.
-    const eligible = await findEligibleContacts(tx, tenantId, parseAudience(current.audience), property, sandbox);
+    const eligible = await findEligibleContacts(tx, tenantId, audience, property, sandbox);
 
     const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -198,12 +207,12 @@ export async function confirmCampaign(deps: AppDeps, tenantId: string, campaignI
   });
 
   if (result === null) {
-    return { campaign: await getCampaign(deps.db, tenantId, campaignId), alreadyConfirmed: true, recipients: current.eligibleCount };
+    return { campaign: await getCampaign(deps.db, tenantId, campaignId), alreadyConfirmed: true, recipients: current.eligibleCount, warning };
   }
   // Enfileira após o commit. Se o processo cair aqui, o reconciliador re-enfileira os "queued".
   await enqueueQueuedRecipients(deps, tenantId, campaignId);
   await maybeComplete(deps, tenantId, campaignId);
-  return { campaign: await getCampaign(deps.db, tenantId, campaignId), alreadyConfirmed: false, recipients: result };
+  return { campaign: await getCampaign(deps.db, tenantId, campaignId), alreadyConfirmed: false, recipients: result, warning };
 }
 
 export async function enqueueQueuedRecipients(deps: AppDeps, tenantId: string, campaignId: string): Promise<number> {

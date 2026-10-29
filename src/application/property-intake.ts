@@ -60,7 +60,7 @@ export async function handleAgentMessage(
     try {
       const r = await confirmCampaign(deps, tenantId, campaign.id, actor);
       const eta = sendEstimate(deps, r.recipients, account.provider);
-      await reply(
+      const msgLines = [
         r.alreadyConfirmed
           ? "Essa campanha já estava confirmada."
           : [
@@ -70,7 +70,9 @@ export async function handleAgentMessage(
             ]
               .filter(Boolean)
               .join("\n"),
-      );
+      ];
+      if (r.warning) msgLines.push(`\n⚠️ ${r.warning}`);
+      await reply(msgLines.join(""));
       return "confirmed";
     } catch (err) {
       if (err instanceof DomainError) {

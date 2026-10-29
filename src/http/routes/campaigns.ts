@@ -5,7 +5,10 @@ import {
   cancelCampaign,
   confirmCampaign,
   createCampaign,
+  findEligibleContacts,
+  parseAudience,
   pauseCampaign,
+  refreshEstimate,
   resumeCampaign,
 } from "../../application/campaign-service.js";
 import type { AppDeps } from "../../application/deps.js";
@@ -19,6 +22,10 @@ const createBody = z.object({
   audience: z.unknown().optional(),
   messageTemplate: z.string().optional(),
   providerAccountId: z.string().uuid().optional(),
+});
+
+const updateAudienceBody = z.object({
+  audience: z.unknown().optional(),
 });
 
 export function registerCampaignRoutes(app: FastifyInstance, deps: AppDeps) {
@@ -47,6 +54,48 @@ export function registerCampaignRoutes(app: FastifyInstance, deps: AppDeps) {
     });
     if (!c) throw new NotFoundError("Campanha");
     return { ...c, metrics: await campaignMetrics(deps.db, req.auth.tenantId, c.id) };
+  });
+
+  app.get<{ Params: { id: string }; Querystring: { page?: string } }>("/campaigns/:id/eligible-contacts", auth, async (req) => {
+    const tenantId = req.auth.tenantId;
+    const c = await deps.db.campaign.findFirst({
+      where: { id: req.params.id, tenantId },
+      include: { property: true },
+    });
+    if (!c) throw new NotFoundError("Campanha");
+    if (!c.property) throw new NotFoundError("Imóvel");
+
+    const eligible = await findEligibleContacts(deps.db, tenantId, parseAudience(c.audience), c.property);
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const start = (page - 1) * 50;
+    const items = eligible.slice(start, start + 50);
+
+    return {
+      items: await deps.db.contact.findMany({
+        where: { id: { in: items.map(c => c.id) }, tenantId },
+        select: { id: true, name: true, phoneE164: true },
+      }),
+      total: eligible.length,
+      page,
+    };
+  });
+
+  app.patch<{ Params: { id: string } }>("/campaigns/:id", auth, async (req) => {
+    const tenantId = req.auth.tenantId;
+    const b = updateAudienceBody.parse(req.body);
+    const c = await deps.db.campaign.findFirst({ where: { id: req.params.id, tenantId } });
+    if (!c) throw new NotFoundError("Campanha");
+    if (c.status !== "awaiting_confirmation" && c.status !== "draft") {
+      throw new NotFoundError("Campanha");
+    }
+
+    const updated = await deps.db.campaign.update({
+      where: { id: req.params.id },
+      data: { audience: b.audience ?? c.audience },
+    });
+
+    await refreshEstimate(deps, tenantId, req.params.id);
+    return updated;
   });
 
   app.post<{ Params: { id: string } }>("/campaigns/:id/confirm", auth, async (req) => confirmCampaign(deps, req.auth.tenantId, req.params.id, actor(req)));

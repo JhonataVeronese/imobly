@@ -9,7 +9,7 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: {
     template: `%s | ${DEFAULT_BRANDING.nome}`,
-    default: `${DEFAULT_BRANDING.nome} — Seu próximo imóvel. Na conversa certa.`,
+    default: `${DEFAULT_BRANDING.nome} — Sistemas inteligentes. Conversas que convertem.`,
   },
   description: DEFAULT_BRANDING.descricao ?? DEFAULT_BRANDING.titulo,
 };

@@ -217,7 +217,7 @@ export async function handleAgentMessage(
 export const DRAFT_SUMMARY_DEBOUNCE_MS = 8000;
 
 export const HELP_TEXT = [
-  "🤖 *imobly — comandos*",
+  "🤖 *Auren — comandos*",
   "",
   "*Divulgar um imóvel:* envie o texto do anúncio (tipo, valor, bairro, quartos, vagas) + fotos + PDF. Eu respondo com um resumo e o público estimado.",
   "*Corrigir:* envie o texto de novo antes de confirmar.",

@@ -70,7 +70,7 @@ export class OmniClient {
       events: OMNI_WEBHOOK_EVENTS,
       signing: true,
       payloadFormat: "Z_API",
-      description: "imobly",
+      description: "Auren",
     });
   }
 

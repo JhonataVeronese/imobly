@@ -9,6 +9,7 @@ import type {
   CampaignDetail,
   CampaignListItem,
   ConfirmCampaignResult,
+  EligibleContactsPage,
   MessageStatus,
   RecipientsPage,
 } from "@/types/campanha";
@@ -32,4 +33,12 @@ export function listRecipients(id: string, status: MessageStatus | null, page: n
   const qs = new URLSearchParams({ page: String(page) });
   if (status) qs.set("status", status);
   return bffRequest<RecipientsPage>(`${campaignUrl(id)}/recipients?${qs.toString()}`);
+}
+
+export function getEligibleContacts(id: string, page: number = 1): Promise<EligibleContactsPage> {
+  return bffRequest<EligibleContactsPage>(`${campaignUrl(id)}/eligible-contacts?page=${page}`);
+}
+
+export function updateCampaignAudience(id: string, audience: unknown): Promise<CampaignDetail> {
+  return bffRequest<CampaignDetail>(campaignUrl(id), jsonInit("PATCH", { audience }));
 }

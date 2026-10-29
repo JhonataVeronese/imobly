@@ -102,4 +102,17 @@ export type RecipientsPage = {
 export type ConfirmCampaignResult = {
   alreadyConfirmed: boolean;
   recipients: number;
+  warning?: string;
+};
+
+export type EligibleContact = {
+  id: string;
+  name: string;
+  phoneE164: string;
+};
+
+export type EligibleContactsPage = {
+  items: EligibleContact[];
+  total: number;
+  page: number;
 };

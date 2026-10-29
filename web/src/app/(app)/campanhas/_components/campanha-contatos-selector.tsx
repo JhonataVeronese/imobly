@@ -88,14 +88,13 @@ export function CampanhaContatosSelector({ campaign, onUpdate, disabled = false 
               <input
                 type="checkbox"
                 id="select-all"
-                checked={allSelected}
-                indeterminate={someSelected && !allSelected}
+                checked={allSelected || someSelected}
                 onChange={(e) => toggleAll(e.target.checked)}
                 disabled={disabled || loading}
                 className="h-4 w-4"
               />
               <label htmlFor="select-all" className="text-body-sm font-medium cursor-pointer">
-                Selecionar tudo
+                Selecionar {allSelected ? "nenhum" : "tudo"}
               </label>
             </div>
 

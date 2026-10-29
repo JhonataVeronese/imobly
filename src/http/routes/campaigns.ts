@@ -89,9 +89,10 @@ export function registerCampaignRoutes(app: FastifyInstance, deps: AppDeps) {
       throw new NotFoundError("Campanha");
     }
 
+    const audience = b.audience !== undefined ? b.audience : c.audience;
     const updated = await deps.db.campaign.update({
       where: { id: req.params.id },
-      data: { audience: b.audience ?? c.audience },
+      data: { audience },
     });
 
     await refreshEstimate(deps, tenantId, req.params.id);

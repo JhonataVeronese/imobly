@@ -1,0 +1,19 @@
+<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aurenGradientWhite" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFC500;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <g>
+    <!-- Ícone da casa -->
+    <path d="M 15 45 L 35 25 L 55 45 V 65 L 15 65 Z" fill="url(#aurenGradientWhite)" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- Teto -->
+    <polygon points="15,45 35,25 55,45" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- Chat bubble -->
+    <circle cx="35" cy="40" r="22" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+    <path d="M 50 52 L 58 60 L 55 52 Z" fill="#FFFFFF"/>
+    <!-- Wordmark -->
+    <text x="70" y="58" font-family="Sora, -apple-system, BlinkMacSystemFont, sans-serif" font-size="32" font-weight="600" fill="#FFFFFF">Auren</text>
+  </g>
+</svg>

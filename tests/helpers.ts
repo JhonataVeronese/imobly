@@ -77,7 +77,7 @@ export async function createTenant(name = "Imob Teste", opts: { instanceId?: str
       name: "Corretor",
       email: `${tenant.id}@test.dev`,
       passwordHash: "x",
-      role: "owner",
+      role: "agent",
       phoneE164: AGENT_PHONE,
     },
   });

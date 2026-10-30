@@ -98,9 +98,7 @@ export function SimuladorClient() {
         <p className="font-bold">Não foi possível abrir o simulador</p>
         <p className="mt-1 text-sm">{error}</p>
         {needsPhone && (
-          <Link href="/configuracoes/usuarios" className="mt-3 inline-block text-sm font-bold underline decoration-neon decoration-2">
-            Ir para Usuários
-          </Link>
+          <p className="mt-3 text-sm font-bold">Peça ao administrador da plataforma para cadastrar o seu WhatsApp no seu usuário.</p>
         )}
       </div>
     );

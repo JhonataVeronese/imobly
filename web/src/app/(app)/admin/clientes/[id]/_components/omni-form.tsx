@@ -4,7 +4,7 @@ import { FormFeedback, PRIMARY_BUTTON_CLASS } from "@/components/cadastros/form-
 import { SelectField } from "@/components/FormElements/controlled-fields";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
-import { createOmniAccount } from "@/services/configuracoes.service";
+import { createOmniAccount } from "@/services/admin.service";
 import type { InboundMode } from "@/types/configuracao";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -26,7 +26,7 @@ const MODES = [
  * Canal da Omni Z-API. Diferente da Z-API clássica, não há URL para copiar: ao salvar, a API cria
  * na Omni o webhook assinado (formato Z-API) apontando para ela.
  */
-export function OmniForm() {
+export function OmniForm({ tenantId }: { tenantId: string }) {
   const router = useRouter();
   const [done, setDone] = useState<string | null>(null);
   const {
@@ -45,7 +45,7 @@ export function OmniForm() {
       return;
     }
     try {
-      const created = await createOmniAccount({
+      const created = await createOmniAccount(tenantId, {
         provider: "omni",
         channelId: v.channelId.trim(),
         secretKey: v.secretKey.trim(),

@@ -23,7 +23,20 @@ let seed = 42;
 const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const pick = <T>(a: T[]) => a[Math.floor(rnd() * a.length)]!;
 
+const ADMIN_EMAIL = "admin@demo.dev";
+
+/** Administrador da plataforma de demonstração — nunca em produção (senha conhecida). */
+async function ensureDemoPlatformAdmin() {
+  if (process.env.NODE_ENV === "production") return;
+  if (await db.user.findUnique({ where: { email: ADMIN_EMAIL } })) return;
+  await db.user.create({
+    data: { tenantId: null, name: "Administrador", email: ADMIN_EMAIL, passwordHash: await hashPassword(DEMO_PASSWORD), role: "platform_admin" },
+  });
+  console.log(`Administrador da plataforma: ${ADMIN_EMAIL} / ${DEMO_PASSWORD}`);
+}
+
 async function main() {
+  await ensureDemoPlatformAdmin();
   const existing = await db.user.findUnique({ where: { email: DEMO_EMAIL } });
   if (existing) {
     console.log("Seed já aplicado. Para recriar: docker compose down -v && docker compose up -d && npm run db:deploy && npm run db:seed");
@@ -32,7 +45,7 @@ async function main() {
 
   const tenant = await db.tenant.create({ data: { name: "Imobiliária Demo", tradeName: "Demo Imóveis", contactPhone: AGENT_PHONE } });
   await db.user.create({
-    data: { tenantId: tenant.id, name: "Corretor Demo", email: DEMO_EMAIL, passwordHash: await hashPassword(DEMO_PASSWORD), role: "owner", phoneE164: AGENT_PHONE },
+    data: { tenantId: tenant.id, name: "Corretor Demo", email: DEMO_EMAIL, passwordHash: await hashPassword(DEMO_PASSWORD), role: "agent", phoneE164: AGENT_PHONE },
   });
   const { token, hash } = generateWebhookToken();
   await db.providerAccount.create({
@@ -73,7 +86,7 @@ async function main() {
   }
 
   const other = await db.tenant.create({ data: { name: "Outra Imobiliária" } });
-  await db.user.create({ data: { tenantId: other.id, name: "Outro", email: "outro@demo.dev", passwordHash: await hashPassword(DEMO_PASSWORD), role: "owner" } });
+  await db.user.create({ data: { tenantId: other.id, name: "Outro", email: "outro@demo.dev", passwordHash: await hashPassword(DEMO_PASSWORD), role: "agent" } });
   await db.contact.create({ data: { tenantId: other.id, name: "Cliente da outra", phoneE164: "+5511900001111", source: "seed" } });
 
   mkdirSync("data", { recursive: true });

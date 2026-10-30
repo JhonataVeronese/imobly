@@ -37,11 +37,11 @@ export async function POST(request: Request) {
       accessToken: login.accessToken,
       tenantHomeId: login.tenantHomeId,
       activeTenantId: login.tenantHomeId,
-      isSuper: false,
+      isSuper: login.isSuper,
       perfil: login.perfil,
     });
 
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, isSuper: login.isSuper });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: shouldUseSecureCookie(request.url),

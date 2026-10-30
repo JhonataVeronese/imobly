@@ -7,13 +7,12 @@
 export const SAAS = {
   authLogin: "/auth/login",
   me: "/me",
-  users: "/users",
   providerAccounts: "/provider-accounts",
-  webhookEvents: "/webhook-events",
+  /** Área do administrador da plataforma (clientes, corretores, conexões). */
+  adminTenants: "/admin/tenants",
   contacts: "/contacts",
   contactsImport: "/contacts/import",
   suppressionList: "/suppression-list",
-  auditLogs: "/audit-logs",
   properties: "/properties",
   campaigns: "/campaigns",
   simulator: "/simulator",
@@ -21,8 +20,7 @@ export const SAAS = {
 
 /** Rotas BFF Next (`/api/...`) usadas pelo navegador. */
 export const NEXT_PROXY = {
-  users: "/api/users",
-  providerAccounts: "/api/provider-accounts",
+  adminTenants: "/api/admin/tenants",
   contacts: "/api/contacts",
   contactsImport: "/api/contacts/import",
   properties: "/api/properties",

@@ -41,7 +41,8 @@ export async function handleAgentMessage(
   msg: InboundMessageEvent,
 ): Promise<string> {
   const reply = (text: string) => sendReply(deps, account, msg.chatId, text);
-  const tenantId = user.tenantId;
+  // O corretor foi localizado entre os usuários do tenant da conexão (inbound-processor).
+  const tenantId = account.tenantId;
   const actor = { type: "user" as const, id: user.id };
 
   // Comandos e rascunhos valem só para o canal de onde vieram: o simulador nunca confirma,

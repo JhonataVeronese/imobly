@@ -19,12 +19,15 @@ export type NormalizedLogin = {
   sub: string;
   email: string;
   name: string;
-  tenantHomeId: string;
+  /** Nulo para o administrador da plataforma. */
+  tenantHomeId: string | null;
   tenantName: string;
   perfil: UsuarioPerfil;
+  /** Administrador da plataforma (cadastra clientes, corretores e conexões). */
+  isSuper: boolean;
 };
 
-type ApiLoginResponse = { token?: string; tenantId?: string; role?: string };
+type ApiLoginResponse = { token?: string; tenantId?: string | null; role?: string };
 type ApiMeResponse = {
   id?: string;
   name?: string;
@@ -33,9 +36,11 @@ type ApiMeResponse = {
   tenant?: { id?: string; name?: string };
 };
 
-/** Papéis da API (owner/admin/agent) → perfis do template (admin/operador). */
+export const PLATFORM_ADMIN_ROLE = "platform_admin";
+
+/** Papéis da API → perfis do template: administrador da plataforma = "admin" + isSuper; corretor = "operador". */
 export function perfilFromApiRole(role: string | undefined): UsuarioPerfil {
-  return role === "owner" || role === "admin" ? "admin" : "operador";
+  return role === PLATFORM_ADMIN_ROLE ? "admin" : "operador";
 }
 
 async function postJson<T>(
@@ -70,8 +75,10 @@ export async function loginOnBackend(email: string, password: string): Promise<N
   if (!login.ok) {
     throw new BackendAuthenticationError(errorMessageFromSaasBodyText(login.text) || `Erro ${login.status}`);
   }
-  const token = login.data?.token;
-  if (!token || !login.data?.tenantId) {
+  const data = login.data;
+  const token = data?.token;
+  const isSuper = data?.role === PLATFORM_ADMIN_ROLE;
+  if (!data || !token || (!isSuper && !data.tenantId)) {
     throw new BackendAuthenticationError("Resposta de login sem token.");
   }
 
@@ -87,8 +94,9 @@ export async function loginOnBackend(email: string, password: string): Promise<N
     sub: me.data.id,
     email: me.data.email ?? email,
     name: me.data.name ?? email,
-    tenantHomeId: login.data.tenantId,
+    tenantHomeId: isSuper ? null : (data.tenantId ?? null),
     tenantName: me.data.tenant?.name ?? "",
-    perfil: perfilFromApiRole(me.data.role ?? login.data.role),
+    perfil: perfilFromApiRole(me.data.role ?? data.role),
+    isSuper,
   };
 }

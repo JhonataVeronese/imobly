@@ -30,7 +30,7 @@ export async function GET() {
     email: session.email,
     name: session.name,
     sub: session.sub,
-    isSuper: false,
+    isSuper: session.isSuper === true,
     perfil: session.perfil ?? null,
     tenantHomeId: session.tenantHomeId ?? null,
     activeTenantId: session.activeTenantId ?? null,

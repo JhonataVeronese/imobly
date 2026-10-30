@@ -78,12 +78,12 @@ export type SaasResourceResult<T> =
   | { status: "error"; data: null; message: string };
 
 /** Busca um recurso único (detalhe) na API — mesmo tratamento de erros de `fetchSaasList`. */
-export async function fetchSaasResource<T>(resourcePath: string): Promise<SaasResourceResult<T>> {
+export async function fetchSaasResource<T>(resourcePath: string, options: FetchSaasListOptions = { requireTenantId: true }): Promise<SaasResourceResult<T>> {
   await connection();
   if (!isSaasApiConfigured()) return { status: "unconfigured", data: null };
 
   try {
-    const res = await saasFetch(resourcePath, { method: "GET", requireTenantId: true });
+    const res = await saasFetch(resourcePath, { method: "GET", requireTenantId: options.requireTenantId, skipTenantHeader: options.skipTenantHeader });
     const text = await res.text();
     if (res.status === 404) return { status: "not_found", data: null };
     if (!res.ok) return { status: "error", data: null, message: errorMessageFromSaasBodyText(text) || `HTTP ${res.status}` };

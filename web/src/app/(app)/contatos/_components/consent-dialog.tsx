@@ -9,16 +9,15 @@ import { useState } from "react";
 
 type Props = {
   contact: ContactListItem | null;
-  canReactivate: boolean;
   onClose: () => void;
   onSaved: () => void;
 };
 
 /**
  * Registro de consentimento verificável: origem + evidência são obrigatórias.
- * Reativar um número descadastrado exige perfil administrador e confirmação explícita.
+ * Reativar um número descadastrado exige evidência nova e confirmação explícita (fica na auditoria).
  */
-export function ConsentDialog({ contact, canReactivate, onClose, onSaved }: Props) {
+export function ConsentDialog({ contact, onClose, onSaved }: Props) {
   const [source, setSource] = useState("");
   const [evidence, setEvidence] = useState("");
   const [confirmReactivation, setConfirmReactivation] = useState(false);
@@ -26,7 +25,6 @@ export function ConsentDialog({ contact, canReactivate, onClose, onSaved }: Prop
   const [error, setError] = useState<string | null>(null);
 
   const isOptedOut = contact?.status === "opted_out";
-  const blocked = isOptedOut && !canReactivate;
 
   const close = () => {
     setSource("");
@@ -76,9 +74,6 @@ export function ConsentDialog({ contact, canReactivate, onClose, onSaved }: Prop
           : undefined
       }
     >
-      {blocked ? (
-        <FormFeedback variant="error">Somente administradores podem reativar números que pediram descadastro.</FormFeedback>
-      ) : (
         <form onSubmit={(e) => void submit(e)} className="space-y-5">
           <InputGroup
             label="Origem"
@@ -112,7 +107,6 @@ export function ConsentDialog({ contact, canReactivate, onClose, onSaved }: Prop
             </button>
           </div>
         </form>
-      )}
     </FormDialog>
   );
 }

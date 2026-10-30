@@ -142,19 +142,19 @@ export default function ManualPage() {
         <main className="min-w-0 space-y-14">
           <Section id="antes" n={1} title="Antes de começar">
             <p>
-              O administrador da imobiliária faz isso <strong>uma vez</strong> no painel. Depois, o seu dia a dia é só no
+              A equipe da Auren deixa tudo pronto <strong>uma vez</strong> na plataforma. Depois, o seu dia a dia é só no
               WhatsApp.
             </p>
             <Checklist
               items={[
-                ["Número de envio conectado", "o WhatsApp da imobiliária conectado em Configurações → Integrações WhatsApp."],
+                ["Número de envio conectado", "o WhatsApp da imobiliária conectado pela equipe da Auren."],
                 [
                   "Canal de entrada definido",
                   "um grupo privado (só você, o número da imobiliária e outros corretores) ou a conversa direta com o número.",
                 ],
                 [
                   "Seu celular cadastrado",
-                  "em Configurações → Usuários, com o seu telefone. Mensagens de números não cadastrados são ignoradas.",
+                  "no seu usuário, cadastrado pela equipe da Auren. Mensagens de números não cadastrados são ignoradas.",
                 ],
                 [
                   "Clientes com consentimento",

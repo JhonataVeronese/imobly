@@ -39,29 +39,59 @@ export type WebhookEvent = {
   payload: unknown;
 };
 
-export type ApiUserRole = "owner" | "admin" | "agent";
-
+/** Corretor da imobiliária (o administrador da plataforma não pertence a um cliente). */
 export type UserListItem = {
   id: string;
   name: string;
   email: string;
-  role: ApiUserRole;
+  role: "agent";
   phoneE164: string | null;
-  status: string;
+  status: "active" | "disabled" | string;
+  createdAt: string;
 };
 
 export type UserCreatePayload = {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "agent";
   phone?: string;
 };
 
-export const ROLE_LABEL: Record<ApiUserRole, string> = {
-  owner: "Proprietário",
-  admin: "Administrador",
-  agent: "Corretor",
+export type UserUpdatePayload = {
+  name?: string;
+  phone?: string | null;
+  status?: "active" | "disabled";
+  password?: string;
+};
+
+export type TenantStatus = "active" | "suspended";
+
+/** Cliente (imobiliária) visto pelo administrador da plataforma. */
+export type AdminTenant = {
+  id: string;
+  name: string;
+  tradeName: string | null;
+  contactPhone: string | null;
+  status: TenantStatus;
+  monthlyMessageLimit: number;
+  createdAt: string;
+  _count: { users: number; providerAccounts: number; campaigns: number; contacts: number };
+};
+
+export type TenantCreatePayload = {
+  name: string;
+  tradeName?: string | null;
+  contactPhone?: string | null;
+  monthlyMessageLimit?: number;
+  user: UserCreatePayload;
+};
+
+export type TenantUpdatePayload = {
+  name?: string;
+  tradeName?: string | null;
+  contactPhone?: string | null;
+  monthlyMessageLimit?: number;
+  status?: TenantStatus;
 };
 
 export type AuditLogItem = {

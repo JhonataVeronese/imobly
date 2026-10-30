@@ -6,7 +6,7 @@ import { audit, isUniqueViolation, type AppDeps } from "../../application/deps.j
 import { contactPreferencesSchema } from "../../domain/audience.js";
 import { DomainError, NotFoundError } from "../../domain/errors.js";
 import { normalizePhoneE164 } from "../../domain/phone.js";
-import { requireAuth, requireRole } from "../auth.js";
+import { requireAuth } from "../auth.js";
 
 const listQuery = z.object({
   status: z.enum(["active", "opted_out", "blocked"]).optional(),
@@ -116,9 +116,7 @@ export function registerContactRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.post<{ Params: { id: string } }>("/contacts/:id/consent", auth, async (req, reply) => {
     const b = consentBody.parse(req.body);
-    if (b.overrideSuppression && !["owner", "admin"].includes(req.auth.role)) {
-      throw new DomainError("forbidden", "Somente administradores podem reativar números descadastrados", 403);
-    }
+    // Reativar descadastrado exige evidência nova e fica auditado (grantConsent).
     const consent = await grantConsent(deps.db, req.auth.tenantId, req.params.id, b, { type: "user", id: req.auth.userId });
     return reply.status(201).send(consent);
   });
@@ -135,9 +133,5 @@ export function registerContactRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/suppression-list", auth, async (req) =>
     deps.db.suppressionEntry.findMany({ where: { tenantId: req.auth.tenantId }, orderBy: { createdAt: "desc" }, take: 500 }),
-  );
-
-  app.get("/audit-logs", { preHandler: [requireAuth, requireRole("owner", "admin")] }, async (req) =>
-    deps.db.auditLog.findMany({ where: { tenantId: req.auth.tenantId }, orderBy: { createdAt: "desc" }, take: 200 }),
   );
 }

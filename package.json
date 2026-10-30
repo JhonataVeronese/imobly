@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "admin:create": "tsx src/cli/create-platform-admin.ts",
     "simulate": "tsx scripts/simulate.ts",
     "probe:zapi": "tsx scripts/probe-zapi.ts",
     "test": "vitest run",

@@ -12,7 +12,7 @@ Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS · sess
 - `src/app/api`: Route Handlers (BFF). O navegador chama **apenas** `/api/*`; o token da API do ImobZap fica dentro do cookie de sessão assinado e nunca chega ao JavaScript do browser.
 - `src/lib/server`: `saasFetch` (headers de autenticação), `fetchSaasList`/`fetchSaasResource` (Server Components) e `proxySaasRequest` (rotas BFF).
 - `src/services`: chamadas do navegador ao BFF.
-- `src/middleware.ts`: exige sessão nas páginas e restringe `/configuracoes` a administradores. A API aplica as mesmas regras no servidor.
+- `src/middleware.ts`: exige sessão; o administrador da plataforma (`isSuper`) só acessa `/admin/*` e o corretor só o resto. A API aplica as mesmas regras no servidor.
 
 Listagens seguem o padrão do template: `page.tsx` (Server Component) carrega os dados e entrega a uma tabela `*-table-client.tsx`.
 
@@ -22,7 +22,7 @@ Listagens seguem o padrão do template: `page.tsx` (Server Component) carrega os
 | Campanhas (lista, detalhe com métricas ao vivo, confirmar/pausar/retomar/cancelar, destinatários) | `/campanhas`, `/campanhas/[id]` |
 | Imóveis (lista, cadastro, correção, fotos/PDF, nova campanha) | `/imoveis`, `/imoveis/novo`, `/imoveis/[id]/editar` |
 | Contatos (carteira, consentimento, descadastro, novo, CSV, supressão) | `/contatos`, `/contatos/novo`, `/contatos/importar`, `/contatos/descadastros` |
-| Configurações — só administradores (integração Z-API + diagnóstico de webhooks, usuários, auditoria) | `/configuracoes/*` |
+| Administração — só o administrador da plataforma (clientes, corretores, conexões WhatsApp, webhooks, auditoria) | `/admin/clientes`, `/admin/clientes/[id]` |
 
 ## Configuração
 
@@ -50,7 +50,7 @@ O **manual de uso pelo WhatsApp** fica em `/manual` ([`src/app/manual/page.tsx`]
 - Marca fixa (ImobZap), sem white-label por domínio e sem catálogo público de planos.
 - Paleta azul e fonte Satoshi do template substituídas pela identidade do site Jhota.
 - Sem módulos financeiros, gráficos (ApexCharts) e mapas.
-- Perfis da API (`owner`/`admin`/`agent`) mapeados para os do template (`admin`/`operador`).
+- Perfis da API mapeados para os do template: `platform_admin` → `isSuper` (área `/admin`), `agent` → `operador`.
 - O `proxySaasRequest` responde 401 sem sessão e normaliza os erros da API para `{ error: mensagem }`.
 - Componentes novos: `StatusBadge`, `FormDialog`, `ListCard`/`PageIntro` e versões controladas de `Select`/`TextArea`.
 - npm em vez de yarn.

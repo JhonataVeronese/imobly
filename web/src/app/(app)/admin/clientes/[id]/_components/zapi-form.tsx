@@ -4,7 +4,7 @@ import { FormFeedback, PRIMARY_BUTTON_CLASS } from "@/components/cadastros/form-
 import { SelectField } from "@/components/FormElements/controlled-fields";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
-import { createZapiAccount } from "@/services/configuracoes.service";
+import { createZapiAccount } from "@/services/admin.service";
 import type { InboundMode } from "@/types/configuracao";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,7 +24,7 @@ const MODES = [
   { value: "direct", label: "Mensagem direta" },
 ] as const;
 
-export function ZapiForm() {
+export function ZapiForm({ tenantId }: { tenantId: string }) {
   const router = useRouter();
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const {
@@ -45,7 +45,7 @@ export function ZapiForm() {
       return;
     }
     try {
-      const created = await createZapiAccount({
+      const created = await createZapiAccount(tenantId, {
         provider: "zapi",
         instanceId: v.instanceId.trim(),
         instanceToken: v.instanceToken.trim(),

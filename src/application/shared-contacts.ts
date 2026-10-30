@@ -37,7 +37,7 @@ export async function attachSharedContacts(
   messageId: string,
 ): Promise<SharedContactsResult> {
   const { db } = deps;
-  const tenantId = user.tenantId;
+  const tenantId = campaign.tenantId;
   const actor = { type: "user" as const, id: user.id };
   const source = isSandboxProvider(account.provider) ? SANDBOX_CONTACT_SOURCE : AGENT_SHARED_SOURCE;
   const result: SharedContactsResult = { added: [], suppressed: [], invalid: [] };

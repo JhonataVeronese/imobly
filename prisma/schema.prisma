@@ -15,9 +15,10 @@ enum TenantStatus {
   suspended
 }
 
+// platform_admin: dono da plataforma (sem tenant) — cadastra clientes, usuários e conexões.
+// agent: corretor — opera só a própria imobiliária.
 enum UserRole {
-  owner
-  admin
+  platform_admin
   agent
 }
 
@@ -94,7 +95,8 @@ model Tenant {
 
 model User {
   id           String   @id @default(uuid()) @db.Uuid
-  tenantId     String   @map("tenant_id") @db.Uuid
+  // Nulo só para platform_admin.
+  tenantId     String?  @map("tenant_id") @db.Uuid
   name         String
   email        String   @unique
   passwordHash String   @map("password_hash")
@@ -104,7 +106,7 @@ model User {
   phoneE164    String?  @map("phone_e164")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, phoneE164])
   @@index([tenantId])

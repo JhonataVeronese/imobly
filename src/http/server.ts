@@ -6,6 +6,7 @@ import { ZodError } from "zod";
 import type { AppDeps } from "../application/deps.js";
 import { DomainError } from "../domain/errors.js";
 import type { LocalDiskStorage } from "../infra/storage/storage.js";
+import { registerAdminRoutes } from "./routes/admin.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerCampaignRoutes } from "./routes/campaigns.js";
 import { registerContactRoutes } from "./routes/contacts.js";
@@ -72,6 +73,7 @@ export async function buildServer(deps: AppDeps, opts: ServerOptions): Promise<F
 
   registerWebhookRoutes(app, deps);
   registerAuthRoutes(app, deps);
+  registerAdminRoutes(app, deps);
   registerProviderRoutes(app, deps);
   registerContactRoutes(app, deps);
   registerPropertyRoutes(app, deps);

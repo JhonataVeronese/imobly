@@ -53,7 +53,7 @@ export default function SigninWithPassword() {
         return;
       }
 
-      router.push("/painel");
+      router.push(json.isSuper ? "/admin/clientes" : "/painel");
       router.refresh();
     } catch {
       setError("root", { message: "Erro de rede. Tente novamente." });

@@ -4,7 +4,6 @@ import { TABLE_HEADER_ROW_CLASS } from "@/components/cadastros/list-card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useTenantContext } from "@/contexts/auth-session-context";
 import { formatBRL, formatDate, formatPhone } from "@/lib/format";
 import { optOutContact } from "@/services/contatos.service";
 import type { ContactListItem, ContactPreferences } from "@/types/contato";
@@ -26,7 +25,6 @@ function preferencesSummary(p: ContactPreferences): string {
 
 export function ContatosTableClient({ rows }: { rows: ContactListItem[] }) {
   const router = useRouter();
-  const { perfil } = useTenantContext();
   const [optOutTarget, setOptOutTarget] = useState<ContactListItem | null>(null);
   const [consentTarget, setConsentTarget] = useState<ContactListItem | null>(null);
 
@@ -105,7 +103,7 @@ export function ContatosTableClient({ rows }: { rows: ContactListItem[] }) {
           router.refresh();
         }}
       />
-      <ConsentDialog contact={consentTarget} canReactivate={perfil === "admin"} onClose={() => setConsentTarget(null)} onSaved={() => router.refresh()} />
+      <ConsentDialog contact={consentTarget} onClose={() => setConsentTarget(null)} onSaved={() => router.refresh()} />
     </>
   );
 }

@@ -37,7 +37,7 @@ Trocar o provedor (ex.: Meta Cloud API) = implementar `OutboundMessagingAdapter`
 
 | Tema | O que a doc diz | Como a POC trata |
 |---|---|---|
-| Autenticação de webhook | Não há assinatura/HMAC nos webhooks | URL com token aleatório por conta (só o hash fica no banco) + checagem de `instanceId` do payload. Rotação em `POST /provider-accounts/:id/rotate-webhook` |
+| Autenticação de webhook | Não há assinatura/HMAC nos webhooks | URL com token aleatório por conta (só o hash fica no banco) + checagem de `instanceId` do payload. Rotação em `POST /admin/tenants/:tenantId/provider-accounts/:id/rotate-webhook` |
 | HTTPS | "O Z-API não aceita webhooks que não sejam HTTPS" | Em dev, usar túnel (cloudflared/ngrok) |
 | Mídia recebida | Fica no storage da Z-API por 30 dias | Copiamos para o nosso storage no processamento (não dependemos da URL) |
 | Idempotência no envio | Não há chave de idempotência; `messageId` no corpo é "responder a" | Timeout ⇒ `unknown`, sem reenvio automático. Estado por parte evita reenviar o que já foi aceito |
@@ -83,7 +83,7 @@ Mensagem: `queued → processing → accepted → sent → delivered → read`, 
 
 1. **Z-API não é a API oficial da Meta.** Envio promocional por API não oficial pode levar a bloqueio do número; a POC não tenta contornar (sem rotação de números, sem atrasos aleatórios). Decisão pendente nº 2 da spec — a troca para Meta Cloud API exige templates de marketing aprovados e opt-in compatível com as políticas da Meta.
 2. **Mesmo número para entrada e saída** (decisão pendente nº 3): as mensagens do corretor chegariam como `fromMe` e hoje são ignoradas. Recomendação: número de entrada separado do número de envio, ou ajuste explícito da regra.
-3. **Consentimento (LGPD):** a importação não gera consentimento; exige origem + evidência por linha. Reativação de número descadastrado só por admin, com nova evidência, auditada.
+3. **Consentimento (LGPD):** a importação não gera consentimento; exige origem + evidência por linha. Reativação de número descadastrado pelo corretor, só com nova evidência e confirmação explícita, auditada.
 4. **Base64 vs URL de mídia:** `ASSET_DELIVERY=base64` funciona sem storage público, mas trafega o arquivo a cada destinatário. Em produção, `url` com S3 e URLs assinadas.
 5. **Entrada serializada** (concurrency 1) para evitar dois rascunhos simultâneos do mesmo corretor. Escala: particionar por tenant.
 6. **Ritmo por número**: uma fila por conta do provedor, 1 destinatário por vez, com intervalo + variação, pausa por lote, janela de horário e teto diário (ver README, "Envio em fila"). O worker abre um `Worker` BullMQ por número cadastrado (sincroniza a cada 30 s); com centenas de números, cada um mantém uma conexão Redis — em escala, fechar os workers de filas ociosas.

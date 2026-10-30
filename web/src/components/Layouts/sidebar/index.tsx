@@ -15,7 +15,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { me } = useAuthSession();
   const navData = useMemo(() => filterNavForSession(me), [me]);
-  const homeHref = "/painel";
+  const homeHref = me?.isSuper ? "/admin/clientes" : "/painel";
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 

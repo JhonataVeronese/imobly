@@ -19,37 +19,58 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(expected, actual);
 }
 
+export type UserRole = "platform_admin" | "agent";
+
+/** Corretor autenticado: o tenant vem do token, nunca do corpo/URL. */
 export interface AuthContext {
   userId: string;
   tenantId: string;
-  role: "owner" | "admin" | "agent";
+  role: "agent";
 }
+
+export interface PlatformAuthContext {
+  userId: string;
+}
+
+type TokenPayload = { sub: string; tid: string | null; role: UserRole };
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
-    payload: { sub: string; tid: string; role: AuthContext["role"] };
-    user: { sub: string; tid: string; role: AuthContext["role"] };
+    payload: TokenPayload;
+    user: TokenPayload;
   }
 }
 
 declare module "fastify" {
   interface FastifyRequest {
     auth: AuthContext;
+    platformAuth: PlatformAuthContext;
   }
 }
 
-/** preHandler: autentica e fixa o tenant da requisição. O tenant NUNCA vem do corpo/URL. */
-export async function requireAuth(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
+async function verifyToken(req: FastifyRequest): Promise<TokenPayload> {
   try {
-    const p = await req.jwtVerify<{ sub: string; tid: string; role: AuthContext["role"] }>();
-    req.auth = { userId: p.sub, tenantId: p.tid, role: p.role };
+    return await req.jwtVerify<TokenPayload>();
   } catch {
     throw new DomainError("unauthorized", "Não autenticado", 401);
   }
 }
 
-export function requireRole(...roles: AuthContext["role"][]) {
-  return async (req: FastifyRequest) => {
-    if (!roles.includes(req.auth.role)) throw new DomainError("forbidden", "Permissão insuficiente", 403);
-  };
+/** preHandler das rotas do cliente (corretor). O administrador da plataforma não opera dados de tenant. */
+export async function requireAuth(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
+  const p = await verifyToken(req);
+  if (p.role !== "agent" || !p.tid) throw new DomainError("forbidden", "Área exclusiva das imobiliárias", 403);
+  req.auth = { userId: p.sub, tenantId: p.tid, role: "agent" };
+}
+
+/** preHandler das rotas `/admin/*`: só o administrador da plataforma. */
+export async function requirePlatformAdmin(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
+  const p = await verifyToken(req);
+  if (p.role !== "platform_admin") throw new DomainError("forbidden", "Área exclusiva do administrador da plataforma", 403);
+  req.platformAuth = { userId: p.sub };
+}
+
+/** Qualquer usuário autenticado (ex.: GET /me). Chamado dentro do handler, não como preHandler. */
+export async function requireSession(req: FastifyRequest): Promise<TokenPayload> {
+  return verifyToken(req);
 }

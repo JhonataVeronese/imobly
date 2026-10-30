@@ -34,7 +34,7 @@ npm run dev                     # terminal 3 — painel em http://localhost:3003
 npm run simulate                # terminal 4 (raiz) — fluxo completo com o provedor fake
 ```
 
-Painel: `corretor@demo.dev` / `demo12345`. Com `npm run simulate -- --no-confirm` a campanha fica aguardando e você confirma pelo painel. O painel é opcional: a API e o worker funcionam sozinhos (configuração inicial por `curl` e operação diária pelo WhatsApp).
+Painel: corretor `corretor@demo.dev` / `demo12345`; administrador da plataforma `admin@demo.dev` / `demo12345` (o seed só cria o administrador fora de produção). Com `npm run simulate -- --no-confirm` a campanha fica aguardando e você confirma pelo painel. O painel é opcional: a API e o worker funcionam sozinhos (configuração inicial por `curl` e operação diária pelo WhatsApp).
 
 O provedor **fake** responde como a Z-API (mesmo formato de webhook) e simula status. Os 4 últimos dígitos do destino ativam cenários: `0001` número inválido, `0002` timeout, `0003` erro transitório, `0004` rate limit, `0005` instância desconectada.
 
@@ -98,21 +98,43 @@ Esperas longas (pausa de lote, fora da janela, teto atingido) não seguram o pro
 
 Contatos que respondem `SAIR`, `PARAR`, `PARE`, `STOP` etc. entram na lista de supressão e os envios pendentes deles são cancelados. `VOLTAR` reativa por pedido explícito do próprio contato, com a mensagem como evidência.
 
+## Perfis
+
+| Perfil | Quem | O que faz |
+|---|---|---|
+| `platform_admin` | Dono da plataforma (sem imobiliária) | Painel `/admin/clientes`: cadastra imobiliárias (com o primeiro corretor), corretores, conexões de WhatsApp; vê webhooks e auditoria de cada cliente. Não opera imóveis, contatos ou campanhas. |
+| `agent` | Corretor da imobiliária | Imóveis, contatos, consentimentos, campanhas e simulador, só da própria imobiliária. Não cria conexões nem usuários. |
+
+Não há cadastro público: clientes são criados pelo administrador. O primeiro administrador é criado por linha de comando (em produção, no terminal do container da API):
+
+```bash
+PLATFORM_ADMIN_PASSWORD='senha-forte-com-12+' node dist/cli/create-platform-admin.js voce@dominio.com "Seu Nome"
+# local: PLATFORM_ADMIN_PASSWORD=... npm run admin:create -- voce@dominio.com "Seu Nome"
+```
+
+Rodar de novo com o mesmo e-mail redefine a senha. Corretor desativado ou imobiliária suspensa não entra no painel (o token já emitido vale até expirar, em até 12 h).
+
 ## API
 
-Todas as rotas, exceto webhooks e auth, exigem `Authorization: Bearer <jwt>`. O tenant vem sempre do token, nunca da URL ou do corpo.
+Todas as rotas, exceto webhooks e login, exigem `Authorization: Bearer <jwt>`. Nas rotas do corretor o tenant vem sempre do token, nunca da URL ou do corpo; nas rotas `/admin` (só `platform_admin`) o cliente vem da URL.
 
 ```
-POST /webhooks/:provider/:token        POST /auth/register · /auth/login · GET /me · GET|POST /users
-GET|POST /provider-accounts            PATCH /provider-accounts/:id · POST /provider-accounts/:id/rotate-webhook
-GET /webhook-events                    (diagnóstico: payloads brutos)
+POST /webhooks/:provider/:token        POST /auth/login · GET /me
+GET /provider-accounts                 (corretor: só leitura)
 GET|POST /contacts                     POST /contacts/import (text/csv) · PATCH /contacts/:id
 GET /contacts/:id/consents             POST /contacts/:id/consent · POST /contacts/:id/opt-out
-GET /suppression-list                  GET /audit-logs
+GET /suppression-list
 GET|POST /properties                   GET|PATCH /properties/:id · POST /properties/:id/assets (multipart)
 DELETE /properties/:id/assets/:assetId
-GET|POST /campaigns                    GET /campaigns/:id (com métricas) · GET /campaigns/:id/recipients
+GET|POST /campaigns                    GET|PATCH /campaigns/:id (com métricas; PATCH = contatos escolhidos)
+GET /campaigns/:id/recipients          GET /campaigns/:id/eligible-contacts
 POST /campaigns/:id/confirm | pause | resume | cancel
+
+# só platform_admin
+GET|POST /admin/tenants                GET|PATCH /admin/tenants/:tenantId
+GET|POST /admin/tenants/:tenantId/users                PATCH /admin/tenants/:tenantId/users/:id
+GET|POST /admin/tenants/:tenantId/provider-accounts    PATCH …/provider-accounts/:id · POST …/provider-accounts/:id/rotate-webhook
+GET /admin/tenants/:tenantId/webhook-events            GET /admin/tenants/:tenantId/audit-logs
 ```
 
 ## Fora do escopo desta POC

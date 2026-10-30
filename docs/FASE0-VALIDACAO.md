@@ -40,6 +40,6 @@ Depois rode `npm run probe:zapi -- report`. Ele responde ao checklist e lista as
 ## Ligando a POC à Z-API real
 
 1. `PUBLIC_BASE_URL` = URL HTTPS do túnel apontando para a API (porta 3000).
-2. Painel → Integrações → Conectar Z-API (instance id/token, id do grupo). Copie a URL de webhook exibida e configure-a nos dois webhooks da instância.
+2. Painel do administrador → Clientes → cliente → Conexões WhatsApp → Conectar Z-API (instance id/token, id do grupo). Copie a URL de webhook exibida e configure-a nos dois webhooks da instância.
 3. Cadastre o telefone do corretor no usuário (o seed usa +55 11 98888-7777; ajuste no banco ou crie um usuário via `POST /users`).
 4. Para mídia por URL (em vez de base64), use `STORAGE_DRIVER=s3` com bucket privado e `ASSET_DELIVERY=url`.

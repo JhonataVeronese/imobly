@@ -5,3 +5,5 @@ coverage
 *.log
 # só a pasta de dados locais da raiz (storage/demo); "data" sem barra ignorava web/src/**/data
 /data
+# permissões locais do Claude Code (pessoais, por máquina)
+.claude/settings.local.json
